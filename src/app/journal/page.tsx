@@ -48,8 +48,9 @@ export default function JournalPage() {
 
   const timeline: TimelineEntry[] = [];
 
-  // Add journal logs
+  // Add journal logs (exclude midday check-in entries)
   for (const log of data.journalLogs) {
+    if (log.nudgeType === "midday-checkin") continue;
     const person = log.relatedPersonId
       ? data.people.find((p) => p.id === log.relatedPersonId)
       : null;
@@ -65,24 +66,7 @@ export default function JournalPage() {
     });
   }
 
-  // Add morning/evening check-ins
-  for (const entry of data.journal) {
-    const parts: string[] = [];
-    if (entry.gratitude?.length) parts.push("Grateful for: " + entry.gratitude.join(", "));
-    if (entry.content) parts.push(entry.content);
-    if (entry.wins?.length) parts.push("Wins: " + entry.wins.join(", "));
-    if (entry.challenges?.length) parts.push("Challenges: " + entry.challenges.join(", "));
-
-    timeline.push({
-      id: entry.id,
-      date: entry.date,
-      category: entry.type === "morning" ? "reflection" : "reflection",
-      title: entry.type === "morning" ? "Morning Check-in" : "Evening Reflection",
-      content: parts.join("\n"),
-      mood: entry.mood,
-      time: entry.createdAt,
-    });
-  }
+  // Skip morning/midday/evening check-ins — those are surveys, not journal entries
 
   // Add connection logs
   for (const log of data.connectionLogs) {
@@ -249,18 +233,16 @@ export default function JournalPage() {
           <div className="space-y-2">
             {grouped[date].map((entry) => {
               const info = CATEGORY_INFO[entry.category] || CATEGORY_INFO.reflection;
+              const timestamp = formatTime(entry.time);
               return (
                 <div key={entry.id} className={`border rounded-xl p-3 ${info.color}`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm">{info.icon}</span>
+                  <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium capitalize">{entry.title}</span>
-                    {entry.mood && (
-                      <span className="text-xs ml-auto">{["😞", "😕", "😐", "🙂", "😄"][entry.mood - 1]}</span>
-                    )}
+                    <span className="text-[10px] text-muted">{timestamp}</span>
                   </div>
-                  <p className="text-sm text-muted pl-6 whitespace-pre-wrap">{entry.content}</p>
+                  <p className="text-sm text-muted whitespace-pre-wrap">{entry.content}</p>
                   {entry.personName && (
-                    <div className="text-[10px] text-muted pl-6 mt-1">About: {entry.personName}</div>
+                    <div className="text-[10px] text-muted mt-1">About: {entry.personName}</div>
                   )}
                 </div>
               );
@@ -304,4 +286,13 @@ function formatDateHeader(date: string, todayStr: string): string {
   if (diff === 1) return "Yesterday";
   const d = new Date(date + "T00:00:00");
   return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+}
+
+function formatTime(isoString: string): string {
+  try {
+    const d = new Date(isoString);
+    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  } catch {
+    return "";
+  }
 }

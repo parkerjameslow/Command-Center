@@ -1,7 +1,19 @@
+"use client";
+
 import { DomainPage } from "@/components/DomainPage";
+import { useStore, today } from "@/lib/store";
 import Link from "next/link";
 
 export default function PersonalPage() {
+  const { data } = useStore();
+  const todayStr = today();
+
+  const todayEntries = [
+    ...(data.journalLogs || []).filter((j) => j.date === todayStr),
+    ...data.journal.filter((j) => j.date === todayStr),
+    ...data.connectionLogs.filter((c) => c.date === todayStr && c.note),
+  ].length;
+
   return (
     <div>
       <DomainPage
@@ -13,16 +25,22 @@ export default function PersonalPage() {
       <div className="max-w-lg mx-auto px-4 pb-6">
         <Link
           href="/journal"
-          className="flex items-center gap-3 bg-card border border-card-border rounded-xl p-4 hover:border-personal/30 transition-colors"
+          className="flex items-center justify-between bg-card border border-card-border rounded-xl p-4 hover:border-personal/30 transition-colors"
         >
-          <span className="text-xl">📖</span>
           <div>
             <div className="text-sm font-medium">Journal</div>
-            <div className="text-xs text-muted">Your growth story, day by day</div>
+            <div className="text-xs text-muted">
+              {todayEntries > 0 ? `${todayEntries} entries today` : "No entries today"}
+            </div>
           </div>
-          <svg className="ml-auto text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <div className="flex items-center gap-2">
+            {todayEntries > 0 && (
+              <span className="text-sm font-bold text-accent">{todayEntries}</span>
+            )}
+            <svg className="text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </div>
         </Link>
       </div>
     </div>
