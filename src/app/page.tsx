@@ -31,6 +31,7 @@ export default function Dashboard() {
 
   // Today's journal
   const todayJournal = data.journal.find((j) => j.date === todayStr && j.type === "morning");
+  const eveningJournal = data.journal.find((j) => j.date === todayStr && j.type === "evening");
 
   // Greeting
   const hour = new Date().getHours();
@@ -81,7 +82,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Morning Check-in CTA */}
+      {/* Daily Workflow CTAs */}
       {!todayJournal && (
         <Link
           href="/checkin"
@@ -89,6 +90,15 @@ export default function Dashboard() {
         >
           <div className="text-accent font-semibold">Start your day</div>
           <div className="text-muted text-sm mt-1">Morning check-in</div>
+        </Link>
+      )}
+      {todayJournal && !eveningJournal && hour >= 17 && (
+        <Link
+          href="/reflect"
+          className="block bg-personal/10 border border-personal/20 rounded-xl p-4 text-center"
+        >
+          <div className="text-personal font-semibold">Wind down</div>
+          <div className="text-muted text-sm mt-1">Evening reflection</div>
         </Link>
       )}
 

@@ -135,7 +135,32 @@ export default function CheckInPage() {
     </div>,
   ];
 
-  function submit() {
+  const [aiResponse, setAiResponse] = useState("");
+  const [loadingAi, setLoadingAi] = useState(false);
+
+  async function submit() {
+    // Get AI coaching
+    setLoadingAi(true);
+    try {
+      const res = await fetch("/api/coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "morning_checkin",
+          mood,
+          energy,
+          gratitude: gratitude.filter(Boolean),
+          priorities: topPriorities.filter(Boolean),
+          intention,
+        }),
+      });
+      const data = await res.json();
+      setAiResponse(data.message || "");
+    } catch {
+      setAiResponse("");
+    }
+    setLoadingAi(false);
+
     // Save journal entry
     update((d) => ({
       ...d,
@@ -173,8 +198,30 @@ export default function CheckInPage() {
         tasks: [...d.tasks, ...newTasks],
       }));
     }
+  }
 
-    router.push("/");
+  // AI response screen
+  if (aiResponse) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        <div className="text-center">
+          <div className="text-4xl mb-3">&#9728;&#65039;</div>
+          <h1 className="text-xl font-bold">You&apos;re set for today</h1>
+        </div>
+
+        <div className="bg-card border border-accent/20 rounded-xl p-4">
+          <div className="text-accent font-medium mb-2 text-sm">Your AI Coach</div>
+          <div className="text-sm whitespace-pre-wrap">{aiResponse}</div>
+        </div>
+
+        <button
+          onClick={() => router.push("/")}
+          className="w-full py-3 bg-accent text-white rounded-xl text-sm font-medium"
+        >
+          Let&apos;s go
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -217,9 +264,10 @@ export default function CheckInPage() {
         ) : (
           <button
             onClick={submit}
-            className="px-6 py-3 bg-accent text-white rounded-xl text-sm font-medium"
+            disabled={loadingAi}
+            className="px-6 py-3 bg-accent text-white rounded-xl text-sm font-medium disabled:opacity-50"
           >
-            Start My Day
+            {loadingAi ? "Getting coaching..." : "Start My Day"}
           </button>
         )}
       </div>
