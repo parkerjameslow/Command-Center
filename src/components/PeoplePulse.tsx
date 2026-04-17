@@ -52,9 +52,10 @@ export function PeoplePulse({ data, todayStr, onConnect }: PeoplePulseProps) {
       </div>
       <div className="space-y-2">
         {peopleWithStatus.map(({ person, days, status, suggestion }) => (
-          <div
+          <Link
+            href={`/people/${person.id}`}
             key={person.id}
-            className={`bg-card border rounded-xl p-3 ${
+            className={`block bg-card border rounded-xl p-3 ${
               status === "overdue"
                 ? "border-danger/30"
                 : status === "due"
@@ -97,7 +98,7 @@ export function PeoplePulse({ data, todayStr, onConnect }: PeoplePulseProps) {
               {/* Quick connect button */}
               {days !== 0 && (
                 <button
-                  onClick={() => onConnect(person.id)}
+                  onClick={(e) => { e.preventDefault(); onConnect(person.id); }}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-medium ${
                     status === "overdue"
                       ? "bg-danger text-white"
@@ -120,7 +121,7 @@ export function PeoplePulse({ data, todayStr, onConnect }: PeoplePulseProps) {
                 {suggestion}
               </div>
             )}
-          </div>
+          </Link>
         ))}
       </div>
     </section>

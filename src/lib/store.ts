@@ -85,6 +85,16 @@ export interface Person {
   createdAt: string;
 }
 
+export interface ConnectionLog {
+  id: string;
+  personId: string;
+  date: string;
+  type: "call" | "text" | "in-person" | "activity" | "gift" | "note";
+  note?: string;
+  mood?: number; // 1-5 how it went
+  createdAt: string;
+}
+
 export interface Nudge {
   id: string;
   type: "relationship" | "chore" | "service" | "self" | "gratitude";
@@ -104,6 +114,7 @@ export interface AppData {
   familyEvents: FamilyEvent[];
   finance: FinanceEntry[];
   people: Person[];
+  connectionLogs: ConnectionLog[];
   nudges: Nudge[];
 }
 
@@ -116,6 +127,7 @@ const DEFAULT_DATA: AppData = {
   familyEvents: [],
   finance: [],
   people: [],
+  connectionLogs: [],
   nudges: [],
 };
 
@@ -170,7 +182,7 @@ function saveLocal(data: AppData) {
 
 // Supabase loader
 async function loadFromSupabase(): Promise<AppData> {
-  const [habits, habitLogs, tasks, goals, journal, familyEvents, finance, people, nudges] =
+  const [habits, habitLogs, tasks, goals, journal, familyEvents, finance, people, connectionLogs, nudges] =
     await Promise.all([
       supabase.from("habits").select("*").order("created_at"),
       supabase.from("habit_logs").select("*").order("date", { ascending: false }),
@@ -180,6 +192,7 @@ async function loadFromSupabase(): Promise<AppData> {
       supabase.from("family_events").select("*").order("date"),
       supabase.from("finance").select("*").order("date", { ascending: false }),
       supabase.from("people").select("*").order("created_at"),
+      supabase.from("connection_logs").select("*").order("date", { ascending: false }),
       supabase.from("nudges").select("*").order("created_at"),
     ]);
 
@@ -192,6 +205,7 @@ async function loadFromSupabase(): Promise<AppData> {
     familyEvents: (familyEvents.data ?? []).map((r) => toCamel(r) as unknown as FamilyEvent),
     finance: (finance.data ?? []).map((r) => toCamel(r) as unknown as FinanceEntry),
     people: (people.data ?? []).map((r) => toCamel(r) as unknown as Person),
+    connectionLogs: (connectionLogs.data ?? []).map((r) => toCamel(r) as unknown as ConnectionLog),
     nudges: (nudges.data ?? []).map((r) => toCamel(r) as unknown as Nudge),
   };
 }
@@ -318,6 +332,12 @@ async function syncToSupabase(prev: AppData, next: AppData) {
   }
   for (const p of updatedPeople) {
     promises.push(run(supabase.from("people").update({ last_contact: p.lastContact, notes: p.notes, contact_frequency: p.contactFrequency }).eq("id", p.id)));
+  }
+
+  // Connection Logs
+  const newConnLogs = next.connectionLogs.filter((c) => !prev.connectionLogs.find((pc) => pc.id === c.id));
+  for (const c of newConnLogs) {
+    promises.push(run(supabase.from("connection_logs").insert(forInsert(c as unknown as Record<string, unknown>))));
   }
 
   // Nudges
