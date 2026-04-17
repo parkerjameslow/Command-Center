@@ -2,6 +2,7 @@
 
 import { useStore, today, getStreak } from "@/lib/store";
 import Link from "next/link";
+import { useState } from "react";
 
 const DOMAINS = [
   { key: "personal", label: "Personal", color: "bg-personal", href: "/personal" },
@@ -13,6 +14,7 @@ const DOMAINS = [
 export default function Dashboard() {
   const { data, loaded, update } = useStore();
   const todayStr = today();
+  const [view, setView] = useState<"dashboard" | "high" | "all">("dashboard");
 
   if (!loaded) {
     return <div className="flex items-center justify-center h-screen text-muted">Loading...</div>;
@@ -55,6 +57,78 @@ export default function Dashboard() {
     }
   }
 
+  // Drill-down views
+  if (view === "high" || view === "all") {
+    const tasksToShow = view === "high" ? highPriority : pendingTasks;
+    const title = view === "high" ? "High Priority Tasks" : "All Open Tasks";
+
+    return (
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setView("dashboard")}
+            className="text-muted hover:text-foreground"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <h1 className="text-xl font-bold">{title}</h1>
+          <span className="text-sm text-muted">({tasksToShow.length})</span>
+        </div>
+
+        {tasksToShow.length === 0 && (
+          <div className="text-center py-12 text-muted text-sm">No tasks here. Nice work.</div>
+        )}
+
+        {tasksToShow
+          .sort((a, b) => {
+            const order = { high: 0, medium: 1, low: 2 };
+            return order[a.priority] - order[b.priority];
+          })
+          .map((task) => (
+            <div
+              key={task.id}
+              className="bg-card border border-card-border rounded-xl p-3 flex items-center gap-3"
+            >
+              <button
+                onClick={() =>
+                  update((d) => ({
+                    ...d,
+                    tasks: d.tasks.map((t) =>
+                      t.id === task.id ? { ...t, completed: true } : t
+                    ),
+                  }))
+                }
+                className={`w-5 h-5 rounded border-2 flex-shrink-0 ${
+                  task.priority === "high"
+                    ? "border-danger"
+                    : task.priority === "medium"
+                    ? "border-warning"
+                    : "border-success"
+                }`}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm">{task.title}</div>
+                <div className="text-[11px] text-muted capitalize">{task.domain}</div>
+              </div>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full ${
+                  task.priority === "high"
+                    ? "bg-danger/20 text-danger"
+                    : task.priority === "medium"
+                    ? "bg-warning/20 text-warning"
+                    : "bg-success/20 text-success"
+                }`}
+              >
+                {task.priority}
+              </span>
+            </div>
+          ))}
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
       {/* Header */}
@@ -71,14 +145,20 @@ export default function Dashboard() {
           <div className="text-2xl font-bold text-accent">{Math.round(habitProgress * 100)}%</div>
           <div className="text-[11px] text-muted mt-0.5">Habits</div>
         </div>
-        <div className="bg-card border border-card-border rounded-xl p-3 text-center">
+        <button
+          onClick={() => setView("high")}
+          className="bg-card border border-card-border rounded-xl p-3 text-center hover:border-danger/30 transition-colors"
+        >
           <div className="text-2xl font-bold text-danger">{highPriority.length}</div>
           <div className="text-[11px] text-muted mt-0.5">High Priority</div>
-        </div>
-        <div className="bg-card border border-card-border rounded-xl p-3 text-center">
+        </button>
+        <button
+          onClick={() => setView("all")}
+          className="bg-card border border-card-border rounded-xl p-3 text-center hover:border-success/30 transition-colors"
+        >
           <div className="text-2xl font-bold text-success">{pendingTasks.length}</div>
           <div className="text-[11px] text-muted mt-0.5">Open Tasks</div>
-        </div>
+        </button>
       </div>
 
       {/* Daily Workflow CTAs */}
