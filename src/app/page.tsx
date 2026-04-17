@@ -746,6 +746,38 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {/* Journal Card */}
+      {(() => {
+        const todayEntries = [
+          ...(data.journalLogs || []).filter((j) => j.date === todayStr),
+          ...data.journal.filter((j) => j.date === todayStr),
+          ...data.connectionLogs.filter((c) => c.date === todayStr && c.note),
+        ].length;
+        return (
+          <Link
+            href="/journal"
+            className="flex items-center justify-between bg-card border border-card-border rounded-xl p-4 hover:border-accent/30 transition-colors"
+          >
+            <div>
+              <div className="text-sm font-medium">Journal</div>
+              <div className="text-xs text-muted">
+                {todayEntries > 0 ? `${todayEntries} entries today` : "Your growth story, day by day"}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {todayEntries > 0 && (
+                <span className="px-2.5 py-1 bg-accent/15 text-accent rounded-full text-xs font-bold">
+                  {todayEntries}
+                </span>
+              )}
+              <svg className="text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          </Link>
+        );
+      })()}
+
       {/* High Priority Tasks */}
       {highPriority.length > 0 && (
         <section>
