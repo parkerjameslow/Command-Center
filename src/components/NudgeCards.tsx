@@ -2,38 +2,47 @@
 
 import type { Nudge, AppData } from "@/lib/store";
 
-const TYPE_STYLES: Record<Nudge["type"], { bg: string; border: string; icon: string; label: string }> = {
-  relationship: { bg: "bg-family/10", border: "border-family/20", icon: "💬", label: "Connect" },
-  chore: { bg: "bg-work/10", border: "border-work/20", icon: "🔧", label: "Home" },
-  service: { bg: "bg-personal/10", border: "border-personal/20", icon: "❤️", label: "Act of Service" },
-  self: { bg: "bg-growth/10", border: "border-growth/20", icon: "🧠", label: "Self" },
-  gratitude: { bg: "bg-warning/10", border: "border-warning/20", icon: "✨", label: "Gratitude" },
+const TYPE_STYLES: Record<Nudge["type"], { bg: string; border: string; label: string }> = {
+  relationship: { bg: "bg-family/10", border: "border-family/20", label: "Connect" },
+  chore: { bg: "bg-work/10", border: "border-work/20", label: "Home" },
+  service: { bg: "bg-personal/10", border: "border-personal/20", label: "Act of Service" },
+  self: { bg: "bg-growth/10", border: "border-growth/20", label: "Self" },
+  gratitude: { bg: "bg-warning/10", border: "border-warning/20", label: "Gratitude" },
 };
 
 interface NudgeCardsProps {
   nudges: Nudge[];
   people: AppData["people"];
   onNudgeTap: (nudge: Nudge) => void;
-  phase?: "morning" | "midday" | "evening";
+  onSeeAll?: () => void;
 }
 
-const PHASE_LABELS = {
-  morning: "Nudges",
-  midday: "Nudges",
-  evening: "Nudges",
-};
-
-export function NudgeCards({ nudges, people, onNudgeTap, phase }: NudgeCardsProps) {
+export function NudgeCards({ nudges, people, onNudgeTap, onSeeAll }: NudgeCardsProps) {
   if (nudges.length === 0) return null;
 
-  // Show up to 4 nudges
-  const visible = nudges.slice(0, 4);
+  // Rotate nudges throughout the day. Show 3 based on hour.
+  // Every hour a new set (with some overlap for continuity)
+  const hour = new Date().getHours();
+  // Each hour, shift window by 1
+  const startIdx = nudges.length > 3 ? (hour % nudges.length) : 0;
+  const visible: Nudge[] = [];
+  for (let i = 0; i < Math.min(3, nudges.length); i++) {
+    visible.push(nudges[(startIdx + i) % nudges.length]);
+  }
 
   return (
     <section>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted mb-3">
-        {phase ? PHASE_LABELS[phase] : "Nudges"}
-      </h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Nudges</h2>
+        <div className="flex items-center gap-3">
+          {nudges.length > 3 && (
+            <span className="text-[11px] text-muted">{nudges.length} active</span>
+          )}
+          {onSeeAll && (
+            <button onClick={onSeeAll} className="text-xs text-accent">See all</button>
+          )}
+        </div>
+      </div>
       <div className="space-y-2">
         {visible.map((nudge) => {
           const style = TYPE_STYLES[nudge.type];
@@ -52,7 +61,7 @@ export function NudgeCards({ nudges, people, onNudgeTap, phase }: NudgeCardsProp
                   {style.label}
                 </span>
                 {person && (
-                  <span className="text-[11px] text-muted ml-auto">{person.name}</span>
+                  <span className="text-[11px] text-muted">· {person.name}</span>
                 )}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted ml-auto flex-shrink-0">
                   <polyline points="9 18 15 12 9 6" />

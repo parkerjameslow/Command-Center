@@ -64,9 +64,15 @@ export function generateFamilySuggestions(data: AppData, todayStr: string): Sugg
   const wife = data.people.find((p) => p.relationship === "wife");
   const kids = data.people.filter((p) => p.relationship === "child");
   const suggestions: Suggestion[] = [];
+  const connectionLogs = data.connectionLogs || [];
 
-  // Wife-focused
+  // Wife-focused — use connection history
   if (wife) {
+    const wifeDays = wife.lastContact ? daysBetween(wife.lastContact, todayStr) : 999;
+    const wifeConnections = connectionLogs.filter((c) => c.personId === wife.id && daysBetween(c.date, todayStr) <= 30);
+    const avgWifeMood = wifeConnections.filter((c) => c.mood).reduce((s, c) => s + (c.mood || 0), 0) / (wifeConnections.filter((c) => c.mood).length || 1);
+    const wifeTypes = new Set(wifeConnections.map((c) => c.type));
+
     const wifeSuggestions = [
       { title: `Send ${wife.name} a text telling her one specific thing you appreciate`, why: "Be specific. Generic compliments feel hollow." },
       { title: `Ask ${wife.name} how you can help her this week`, why: "The simplest act of love is asking and then listening." },
@@ -75,16 +81,37 @@ export function generateFamilySuggestions(data: AppData, todayStr: string): Sugg
       { title: `Put the phone down and have a real conversation tonight`, why: "Presence is the gift she notices most." },
       { title: `Ask ${wife.name} about her biggest frustration right now — and listen without fixing`, why: "Most of the time, she needs to be heard, not rescued." },
     ];
+
+    // Priority suggestion based on data
+    let top;
+    if (wifeDays >= 3) {
+      top = { title: `${wifeDays} days since real connection with ${wife.name}. Make tonight different.`, why: "Distance compounds. Close it tonight." };
+    } else if (avgWifeMood > 0 && avgWifeMood < 3) {
+      top = { title: `Recent time with ${wife.name} has felt off. Have a real conversation about it.`, why: `Quality average: ${avgWifeMood.toFixed(1)}/5. Don't let it drift.` };
+    } else if (wifeTypes.size === 1 && wifeConnections.length >= 3) {
+      const only = [...wifeTypes][0];
+      top = { title: `Only ${only} with ${wife.name} recently. Mix it up — plan quality time.`, why: "Variety in connection keeps a marriage fresh." };
+    } else {
+      top = wifeSuggestions[dayIdx % wifeSuggestions.length];
+    }
+
     suggestions.push({
-      ...wifeSuggestions[dayIdx % wifeSuggestions.length],
+      ...top,
       category: `For ${wife.name}`,
       bg: "bg-family/5 border-family/20",
     });
   }
 
-  // Kids-focused
+  // Kids-focused — prioritize the most overdue kid
   if (kids.length > 0) {
-    const kid = kids[dayIdx % kids.length];
+    const kidsRanked = [...kids].sort((a, b) => {
+      const aDays = a.lastContact ? daysBetween(a.lastContact, todayStr) : 999;
+      const bDays = b.lastContact ? daysBetween(b.lastContact, todayStr) : 999;
+      return bDays - aDays;
+    });
+    const kid = kidsRanked[0];
+    const kidDays = kid.lastContact ? daysBetween(kid.lastContact, todayStr) : 999;
+
     const kidSuggestions = [
       { title: `Give ${kid.name} 15 minutes of undivided attention — they pick the activity`, why: "Time spells love. Let them choose what you do together." },
       { title: `Tell ${kid.name} specifically what you're proud of them for`, why: "Generic praise doesn't stick. Be specific about what you noticed." },
@@ -92,8 +119,13 @@ export function generateFamilySuggestions(data: AppData, todayStr: string): Sugg
       { title: `Teach ${kid.name} a skill you know — anything practical`, why: "Kids remember the things you showed them more than what you said." },
       { title: `Apologize to ${kid.name} if you lost your patience recently`, why: "Modeling repair teaches them how to do it in their own lives." },
     ];
+
+    const top = kidDays >= 3
+      ? { title: `${kidDays} days since quality time with ${kid.name}. Make it happen tonight.`, why: "Kids notice the gaps more than we realize." }
+      : kidSuggestions[dayIdx % kidSuggestions.length];
+
     suggestions.push({
-      ...kidSuggestions[dayIdx % kidSuggestions.length],
+      ...top,
       category: kid.name,
       bg: "bg-personal/5 border-personal/20",
     });

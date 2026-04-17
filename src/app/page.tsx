@@ -17,7 +17,7 @@ const DOMAINS = [
 export default function Dashboard() {
   const { data, loaded, update } = useStore();
   const todayStr = today();
-  const [view, setView] = useState<"dashboard" | "high" | "all" | "people" | "goals" | "habits">("dashboard");
+  const [view, setView] = useState<"dashboard" | "high" | "all" | "people" | "goals" | "habits" | "nudges">("dashboard");
   const [activeNudge, setActiveNudge] = useState<Nudge | null>(null);
 
   // All hooks must be before any early return
@@ -201,6 +201,64 @@ export default function Dashboard() {
 
   // Goals drill-down
   // Habits drill-down
+  // Nudges drill-down view — all of today's nudges
+  if (view === "nudges") {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setView("dashboard")} className="text-muted hover:text-foreground">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <h1 className="text-xl font-bold">Nudges</h1>
+          <span className="text-sm text-muted">({nudges.length})</span>
+        </div>
+        <p className="text-xs text-muted">Your brain — every nudge generated for you today, rotating throughout the day.</p>
+
+        <div className="space-y-2">
+          {nudges.map((nudge) => {
+            const styles: Record<string, string> = {
+              relationship: "bg-family/10 border-family/20",
+              chore: "bg-work/10 border-work/20",
+              service: "bg-personal/10 border-personal/20",
+              self: "bg-growth/10 border-growth/20",
+              gratitude: "bg-warning/10 border-warning/20",
+            };
+            const labels: Record<string, string> = {
+              relationship: "Connect",
+              chore: "Home",
+              service: "Act of Service",
+              self: "Self",
+              gratitude: "Gratitude",
+            };
+            const person = nudge.personId ? data.people.find((p) => p.id === nudge.personId) : null;
+            return (
+              <button
+                key={nudge.id}
+                onClick={() => setActiveNudge(nudge)}
+                className={`w-full text-left border rounded-xl p-4 ${styles[nudge.type]}`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                    {labels[nudge.type]}
+                  </span>
+                  {person && (
+                    <span className="text-[11px] text-muted">· {person.name}</span>
+                  )}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted ml-auto flex-shrink-0">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+                <p className="text-sm leading-relaxed">{nudge.message}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   if (view === "habits") {
     const domains = ["personal", "family", "work", "growth"] as const;
     const domainLabels: Record<string, string> = { personal: "Personal", family: "Family", work: "Chores", growth: "Growth" };
@@ -523,12 +581,12 @@ export default function Dashboard() {
         );
       })()}
 
-      {/* Smart Nudges — time-phased */}
+      {/* Smart Nudges — rotating queue */}
       <NudgeCards
         nudges={nudges}
         people={data.people}
         onNudgeTap={setActiveNudge}
-        phase={hour < 12 ? "morning" : hour < 13 ? "morning" : hour < 18 ? "midday" : "evening"}
+        onSeeAll={() => setView("nudges")}
       />
 
       {/* Nudge Action Modal */}
