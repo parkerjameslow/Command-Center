@@ -139,29 +139,21 @@ export default function CheckInPage() {
   const [loadingAi, setLoadingAi] = useState(false);
 
   async function submit() {
-    // Get AI coaching
     setLoadingAi(true);
-    try {
-      const res = await fetch("/api/coach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "morning_checkin",
-          mood,
-          energy,
-          gratitude: gratitude.filter(Boolean),
-          priorities: topPriorities.filter(Boolean),
-          intention,
-        }),
-      });
-      const data = await res.json();
-      setAiResponse(data.message || "");
-    } catch {
-      setAiResponse("");
-    }
-    setLoadingAi(false);
 
-    // Save journal entry
+    // Save journal entry + tasks in one update
+    const newTasks = topPriorities
+      .filter(Boolean)
+      .map((title) => ({
+        id: uid(),
+        title,
+        domain: "work" as const,
+        priority: "high" as const,
+        completed: false,
+        dueDate: todayStr,
+        createdAt: new Date().toISOString(),
+      }));
+
     update((d) => ({
       ...d,
       journal: [
@@ -177,27 +169,34 @@ export default function CheckInPage() {
           createdAt: new Date().toISOString(),
         },
       ],
+      tasks: [...d.tasks, ...newTasks],
     }));
 
-    // Create tasks from priorities
-    const newTasks = topPriorities
-      .filter(Boolean)
-      .map((title) => ({
-        id: uid(),
-        title,
-        domain: "work" as const,
-        priority: "high" as const,
-        completed: false,
-        dueDate: todayStr,
-        createdAt: new Date().toISOString(),
-      }));
-
-    if (newTasks.length > 0) {
-      update((d) => ({
-        ...d,
-        tasks: [...d.tasks, ...newTasks],
-      }));
+    // Get AI coaching (non-blocking)
+    let coaching = "You're set for today. Stay focused on your priorities and check in tonight.";
+    try {
+      const res = await fetch("/api/coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "morning_checkin",
+          mood,
+          energy,
+          gratitude: gratitude.filter(Boolean),
+          priorities: topPriorities.filter(Boolean),
+          intention,
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        coaching = json.message || coaching;
+      }
+    } catch {
+      // Use default coaching message
     }
+
+    setAiResponse(coaching);
+    setLoadingAi(false);
   }
 
   // AI response screen
