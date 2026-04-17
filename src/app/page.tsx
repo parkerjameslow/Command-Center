@@ -17,7 +17,7 @@ const DOMAINS = [
 export default function Dashboard() {
   const { data, loaded, update } = useStore();
   const todayStr = today();
-  const [view, setView] = useState<"dashboard" | "high" | "all" | "people">("dashboard");
+  const [view, setView] = useState<"dashboard" | "high" | "all" | "people" | "goals">("dashboard");
   const [activeNudge, setActiveNudge] = useState<Nudge | null>(null);
 
   // All hooks must be before any early return
@@ -193,6 +193,63 @@ export default function Dashboard() {
     );
   }
 
+  // Goals drill-down
+  if (view === "goals") {
+    const allGoals = data.goals;
+    const domains = ["personal", "family", "work", "growth"] as const;
+
+    return (
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setView("dashboard")} className="text-muted hover:text-foreground">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <h1 className="text-xl font-bold">Goals</h1>
+          <span className="text-sm text-muted">({allGoals.length})</span>
+        </div>
+
+        {allGoals.length === 0 && (
+          <div className="text-center py-12 text-muted text-sm">No goals yet. Add one from any domain page.</div>
+        )}
+
+        {domains.map((domain) => {
+          const domainGoals = allGoals.filter((g) => g.domain === domain);
+          if (domainGoals.length === 0) return null;
+          return (
+            <div key={domain}>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted mb-2 capitalize">{domain}</h2>
+              <div className="space-y-2">
+                {domainGoals.map((goal) => {
+                  const progress = goal.targetValue > 0 ? goal.currentValue / goal.targetValue : 0;
+                  return (
+                    <div key={goal.id} className="bg-card border border-card-border rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">{goal.title}</span>
+                        <span className="text-xs text-muted">{Math.round(progress * 100)}%</span>
+                      </div>
+                      <div className="h-2 bg-card-border rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${progress >= 1 ? "bg-success" : "bg-accent"}`}
+                          style={{ width: `${Math.min(100, progress * 100)}%` }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-muted mt-1">
+                        {goal.currentValue}/{goal.targetValue} {goal.unit}
+                        {goal.deadline && ` · due ${goal.deadline}`}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   if (view === "high" || view === "all") {
     const tasksToShow = view === "high" ? highPriority : pendingTasks;
     const title = view === "high" ? "High Priority Tasks" : "All Open Tasks";
@@ -275,24 +332,31 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-card border border-card-border rounded-xl p-3 text-center">
-          <div className="text-2xl font-bold text-accent">{Math.round(habitProgress * 100)}%</div>
-          <div className="text-[11px] text-muted mt-0.5">Habits</div>
+      <div className="grid grid-cols-4 gap-2">
+        <div className="bg-card border border-card-border rounded-xl p-2.5 text-center">
+          <div className="text-xl font-bold text-accent">{Math.round(habitProgress * 100)}%</div>
+          <div className="text-[10px] text-muted mt-0.5">Habits</div>
         </div>
         <button
           onClick={() => setView("high")}
-          className="bg-card border border-card-border rounded-xl p-3 text-center hover:border-danger/30 transition-colors"
+          className="bg-card border border-card-border rounded-xl p-2.5 text-center hover:border-danger/30 transition-colors"
         >
-          <div className="text-2xl font-bold text-danger">{highPriority.length}</div>
-          <div className="text-[11px] text-muted mt-0.5">High Priority</div>
+          <div className="text-xl font-bold text-danger">{highPriority.length}</div>
+          <div className="text-[10px] text-muted mt-0.5">Priority</div>
         </button>
         <button
           onClick={() => setView("all")}
-          className="bg-card border border-card-border rounded-xl p-3 text-center hover:border-success/30 transition-colors"
+          className="bg-card border border-card-border rounded-xl p-2.5 text-center hover:border-success/30 transition-colors"
         >
-          <div className="text-2xl font-bold text-success">{pendingTasks.length}</div>
-          <div className="text-[11px] text-muted mt-0.5">Open Tasks</div>
+          <div className="text-xl font-bold text-success">{pendingTasks.length}</div>
+          <div className="text-[10px] text-muted mt-0.5">Tasks</div>
+        </button>
+        <button
+          onClick={() => setView("goals")}
+          className="bg-card border border-card-border rounded-xl p-2.5 text-center hover:border-accent/30 transition-colors"
+        >
+          <div className="text-xl font-bold text-accent-light">{data.goals.length}</div>
+          <div className="text-[10px] text-muted mt-0.5">Goals</div>
         </button>
       </div>
 
@@ -422,30 +486,114 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* Domain Overview */}
+      {/* Domain Overview — Rich Data Cards */}
       <section>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted mb-3">Life Domains</h2>
         <div className="grid grid-cols-2 gap-3">
-          {DOMAINS.map((domain) => {
-            const domainTasks = pendingTasks.filter((t) => t.domain === domain.key);
-            const domainGoals = data.goals.filter((g) => g.domain === domain.key);
-            return (
-              <Link
-                key={domain.key}
-                href={domain.href}
-                className="bg-card border border-card-border rounded-xl p-4 hover:border-accent/30 transition-colors"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${domain.color}`} />
-                  <span className="text-sm font-medium">{domain.label}</span>
+          {/* Personal Card */}
+          <Link href="/personal" className="bg-card border border-card-border rounded-xl p-4 hover:border-personal/30 transition-colors">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-personal" />
+              <span className="text-sm font-medium">Personal</span>
+            </div>
+            {(() => {
+              const personalHabits = dailyHabits.filter((h) => h.domain === "personal");
+              const personalDone = personalHabits.filter((h) => todayLogs.find((l) => l.habitId === h.id && l.completed)).length;
+              const journalCount = (data.journalLogs || []).filter((j) => daysBetween(j.date, todayStr) <= 7).length;
+              const recentMoods = data.journal.filter((j) => j.mood && daysBetween(j.date, todayStr) <= 7).map((j) => j.mood!);
+              const avgMood = recentMoods.length > 0 ? (recentMoods.reduce((a, b) => a + b, 0) / recentMoods.length).toFixed(1) : "—";
+              return (
+                <div className="text-xs text-muted space-y-1">
+                  {personalHabits.length > 0 && <div>{personalDone}/{personalHabits.length} habits done</div>}
+                  <div>Mood avg: <span className="text-foreground font-medium">{avgMood}</span>/5</div>
+                  <div>{journalCount} journal entries this week</div>
                 </div>
-                <div className="text-xs text-muted space-y-0.5">
-                  <div>{domainTasks.length} tasks</div>
-                  <div>{domainGoals.length} goals</div>
+              );
+            })()}
+          </Link>
+
+          {/* Family Card */}
+          <Link href="/family" className="bg-card border border-card-border rounded-xl p-4 hover:border-family/30 transition-colors">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-family" />
+              <span className="text-sm font-medium">Family</span>
+            </div>
+            {(() => {
+              const overdueRelationships = data.people.filter((p) => {
+                if (!p.lastContact) return true;
+                return daysBetween(p.lastContact, todayStr) >= p.contactFrequency;
+              });
+              const connectedToday = data.people.filter((p) => p.lastContact === todayStr).length;
+              const upcomingEvents = data.familyEvents.filter((e) => e.date >= todayStr && daysBetween(todayStr, e.date) <= 7).length;
+              const mostOverdue = overdueRelationships.sort((a, b) => {
+                const aDays = a.lastContact ? daysBetween(a.lastContact, todayStr) : 999;
+                const bDays = b.lastContact ? daysBetween(b.lastContact, todayStr) : 999;
+                return bDays - aDays;
+              })[0];
+              return (
+                <div className="text-xs text-muted space-y-1">
+                  <div><span className="text-success font-medium">{connectedToday}</span> connected today</div>
+                  {overdueRelationships.length > 0 && (
+                    <div className="text-danger">{overdueRelationships.length} overdue</div>
+                  )}
+                  {mostOverdue && (
+                    <div>Reach out to <span className="text-foreground font-medium">{mostOverdue.name}</span></div>
+                  )}
+                  {upcomingEvents > 0 && <div>{upcomingEvents} events this week</div>}
                 </div>
-              </Link>
-            );
-          })}
+              );
+            })()}
+          </Link>
+
+          {/* Work Card */}
+          <Link href="/work" className="bg-card border border-card-border rounded-xl p-4 hover:border-work/30 transition-colors">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-work" />
+              <span className="text-sm font-medium">Work</span>
+            </div>
+            {(() => {
+              const workTasks = pendingTasks.filter((t) => t.domain === "work");
+              const workHigh = workTasks.filter((t) => t.priority === "high").length;
+              const workCompleted = data.tasks.filter((t) => t.domain === "work" && t.completed).length;
+              const workGoals = data.goals.filter((g) => g.domain === "work");
+              const goalProgress = workGoals.length > 0
+                ? Math.round(workGoals.reduce((sum, g) => sum + (g.targetValue > 0 ? g.currentValue / g.targetValue : 0), 0) / workGoals.length * 100)
+                : null;
+              return (
+                <div className="text-xs text-muted space-y-1">
+                  <div><span className="text-foreground font-medium">{workTasks.length}</span> open tasks{workHigh > 0 && <span className="text-danger"> ({workHigh} urgent)</span>}</div>
+                  <div>{workCompleted} completed total</div>
+                  {goalProgress !== null && <div>Goal progress: <span className="text-foreground font-medium">{goalProgress}%</span></div>}
+                </div>
+              );
+            })()}
+          </Link>
+
+          {/* Growth Card */}
+          <Link href="/growth" className="bg-card border border-card-border rounded-xl p-4 hover:border-growth/30 transition-colors">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-growth" />
+              <span className="text-sm font-medium">Growth</span>
+            </div>
+            {(() => {
+              const growthGoals = data.goals.filter((g) => g.domain === "growth");
+              const growthProgress = growthGoals.length > 0
+                ? Math.round(growthGoals.reduce((sum, g) => sum + (g.targetValue > 0 ? g.currentValue / g.targetValue : 0), 0) / growthGoals.length * 100)
+                : null;
+              const growthHabits = dailyHabits.filter((h) => h.domain === "growth");
+              const growthDone = growthHabits.filter((h) => todayLogs.find((l) => l.habitId === h.id && l.completed)).length;
+              const totalJournal = (data.journalLogs || []).length;
+              const lessons = (data.journalLogs || []).filter((j) => j.category === "lesson").length;
+              return (
+                <div className="text-xs text-muted space-y-1">
+                  {growthGoals.length > 0 && <div>Goal progress: <span className="text-foreground font-medium">{growthProgress}%</span></div>}
+                  {growthHabits.length > 0 && <div>{growthDone}/{growthHabits.length} habits today</div>}
+                  <div>{lessons} lessons logged</div>
+                  <div>{totalJournal} total reflections</div>
+                </div>
+              );
+            })()}
+          </Link>
         </div>
       </section>
 
@@ -513,4 +661,10 @@ function getPersonSuggestion(person: { name: string; relationship: string; conta
       : `A quick call to ${name} would make their day.`;
   }
   return `Reach out to ${name}. Connection takes intention.`;
+}
+
+function daysBetween(dateA: string, dateB: string): number {
+  const a = new Date(dateA + "T00:00:00");
+  const b = new Date(dateB + "T00:00:00");
+  return Math.floor((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
 }
