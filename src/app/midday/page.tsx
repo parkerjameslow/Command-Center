@@ -31,9 +31,37 @@ export default function MiddayCheckinPage() {
   const [focus, setFocus] = useState(3);
   const [onTrack, setOnTrack] = useState("");
   const [struggle, setStruggle] = useState("");
-  const [afternoonPriority, setAfternoonPriority] = useState("");
+  const [acceptedRecommendation, setAcceptedRecommendation] = useState(false);
+  const [customPriority, setCustomPriority] = useState("");
 
   const quote = useMemo(() => QUOTES[dayOfYear() % QUOTES.length], []);
+
+  // Generate a recommended priority based on data
+  const recommendation = useMemo(() => {
+    const overduePeople = data.people.filter((p) => {
+      if (!p.lastContact) return true;
+      const days = Math.floor((new Date(todayStr + "T00:00:00").getTime() - new Date(p.lastContact + "T00:00:00").getTime()) / 86400000);
+      return days >= p.contactFrequency;
+    });
+    const pendingChores = data.tasks.filter((t) => t.domain === "work" && !t.completed);
+    const wife = data.people.find((p) => p.relationship === "wife");
+    const kids = data.people.filter((p) => p.relationship === "child");
+
+    if (overduePeople.length > 0) {
+      const p = overduePeople[0];
+      return `Call or connect with ${p.name} — they're overdue for your attention`;
+    }
+    if (pendingChores.length > 0) {
+      return `Finish: ${pendingChores[0].title}`;
+    }
+    if (wife) {
+      return `Do something thoughtful for ${wife.name} before the evening`;
+    }
+    if (kids.length > 0) {
+      return `Plan quality time with ${kids[dayOfYear() % kids.length].name} tonight`;
+    }
+    return "Take 15 minutes for something that matters but isn't urgent";
+  }, [data, todayStr]);
 
   // Today's data for pulse indicators
   const dailyHabits = data.habits.filter((h) => h.frequency === "daily");
@@ -67,13 +95,26 @@ export default function MiddayCheckinPage() {
   }
 
   function submit() {
-    // Save as journal log
+    const priorities: string[] = [];
+    if (acceptedRecommendation) priorities.push(recommendation);
+    if (customPriority.trim()) priorities.push(customPriority.trim());
+
     const content = [
       `Energy: ${energy}/5 | Focus: ${focus}/5`,
       onTrack && `On track: ${onTrack}`,
       struggle && `Struggle: ${struggle}`,
-      afternoonPriority && `Afternoon priority: ${afternoonPriority}`,
+      ...priorities.map((p) => `Priority: ${p}`),
     ].filter(Boolean).join("\n");
+
+    const newTasks = priorities.map((title) => ({
+      id: uid(),
+      title,
+      domain: "work" as const,
+      priority: "high" as const,
+      completed: false,
+      dueDate: todayStr,
+      createdAt: new Date().toISOString(),
+    }));
 
     update((d) => ({
       ...d,
@@ -87,18 +128,7 @@ export default function MiddayCheckinPage() {
         nudgeType: "midday-checkin",
         createdAt: new Date().toISOString(),
       }],
-      // Add afternoon priority as a task if provided
-      ...(afternoonPriority.trim() ? {
-        tasks: [...d.tasks, {
-          id: uid(),
-          title: afternoonPriority.trim(),
-          domain: "work" as const,
-          priority: "high" as const,
-          completed: false,
-          dueDate: todayStr,
-          createdAt: new Date().toISOString(),
-        }],
-      } : {}),
+      tasks: [...d.tasks, ...newTasks],
     }));
 
     router.push("/");
@@ -186,17 +216,48 @@ export default function MiddayCheckinPage() {
       />
     </div>,
 
-    // Step 3: Afternoon priority
+    // Step 3: Afternoon priority — recommendation + custom
     <div key="priority" className="space-y-4">
-      <h2 className="text-lg font-semibold">One thing for this afternoon</h2>
-      <p className="text-sm text-muted">If you could only accomplish one more thing today, what would have the biggest impact on your family, your growth, or your peace of mind?</p>
-      <input
-        type="text"
-        placeholder="My #1 afternoon priority..."
-        value={afternoonPriority}
-        onChange={(e) => setAfternoonPriority(e.target.value)}
-        className="w-full bg-card border border-card-border rounded-xl px-4 py-3 text-sm outline-none focus:border-accent"
-      />
+      <h2 className="text-lg font-semibold">Afternoon priority</h2>
+      <p className="text-sm text-muted">Based on your data, here&apos;s what would have the biggest impact right now:</p>
+
+      {/* Recommendation */}
+      <button
+        onClick={() => setAcceptedRecommendation(!acceptedRecommendation)}
+        className={`w-full text-left border rounded-xl p-4 transition-all ${
+          acceptedRecommendation
+            ? "bg-accent/10 border-accent/30"
+            : "bg-card border-card-border"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+            acceptedRecommendation ? "bg-accent border-accent" : "border-muted"
+          }`}>
+            {acceptedRecommendation && (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+          </div>
+          <div>
+            <div className="text-[10px] text-muted uppercase font-semibold mb-0.5">Recommended</div>
+            <div className="text-sm">{recommendation}</div>
+          </div>
+        </div>
+      </button>
+
+      {/* Custom priority */}
+      <div>
+        <div className="text-xs text-muted mb-2">Add your own priority (optional)</div>
+        <input
+          type="text"
+          placeholder="Something else on your mind..."
+          value={customPriority}
+          onChange={(e) => setCustomPriority(e.target.value)}
+          className="w-full bg-card border border-card-border rounded-xl px-4 py-3 text-sm outline-none focus:border-accent"
+        />
+      </div>
     </div>,
   ];
 

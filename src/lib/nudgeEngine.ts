@@ -69,23 +69,7 @@ export function generateNudges(data: AppData, todayStr: string): Nudge[] {
       nudges.push(makeNudge("relationship", kidMessages[dayIdx % kidMessages.length], todayStr, kid.id));
     }
 
-    // --- SELF/MINDSET ---
-    if (habitRate < 0.5) {
-      nudges.push(makeNudge("self", "Your habit consistency is below 50%. Don't try to fix everything — pick your ONE most important habit and protect it today.", todayStr));
-    } else if (habitRate >= 0.8) {
-      nudges.push(makeNudge("self", `${Math.round(habitRate * 100)}% habit consistency. You're building real momentum. Don't break the chain.`, todayStr));
-    }
-
-    // Gratitude
-    const gratitudeMessages = [
-      "Name 3 things going right. Not big things — the small ones you're taking for granted.",
-      "Who made your life better this week? Tell them today.",
-      "What's one thing past-you would be amazed that you have now?",
-      gratitudeEntries.length >= 3
-        ? `You've logged ${gratitudeEntries.length} gratitude entries recently. That rewires your brain. Keep going.`
-        : "Start the day with gratitude. It changes how you see everything else.",
-    ];
-    nudges.push(makeNudge("gratitude", gratitudeMessages[dayIdx % gratitudeMessages.length], todayStr));
+    // Self/gratitude handled by morning survey — not nudge cards
   }
 
   // ========================================
@@ -141,12 +125,7 @@ export function generateNudges(data: AppData, todayStr: string): Nudge[] {
       }
     }
 
-    // --- SELF-CARE ---
-    if (avgMood < 2.5) {
-      nudges.push(makeNudge("self", "Your mood has been consistently low. You can't pour from an empty cup. What fills yours? Do that thing today.", todayStr));
-    } else if (avgEnergy < 2.5) {
-      nudges.push(makeNudge("self", "Your energy has been low. Sleep, movement, nutrition — which one needs attention? Pick one and fix it today.", todayStr));
-    }
+    // Self-care handled by midday survey — not nudge cards
   }
 
   // ========================================
@@ -178,36 +157,7 @@ export function generateNudges(data: AppData, todayStr: string): Nudge[] {
       nudges.push(makeNudge("relationship", kidEvening[dayIdx % kidEvening.length], todayStr, kid.id));
     }
 
-    // --- REFLECTION ---
-    const reflectionMessages = [
-      "What's one thing you did today that you're proud of? Write it down. You'll forget otherwise.",
-      "What could you have done better today? Not to beat yourself up — to grow from it.",
-      "Rate your day as a husband, father, and person. What would make tomorrow a 10?",
-      "Compare yourself to who you were a month ago. Are you moving in the right direction?",
-      `You've been using Command Center to grow. ${journalLogs.length} total entries logged. Every entry is a brick in the person you're building.`,
-    ];
-    nudges.push(makeNudge("self", reflectionMessages[dayIdx % reflectionMessages.length], todayStr));
-
-    // --- GRATITUDE EVENING ---
-    nudges.push(makeNudge("gratitude", "Before the day ends — what are 3 things you're grateful for? One about your family. One about yourself. One about your life.", todayStr));
-
-    // --- DOMAIN BALANCE ---
-    const taskDomains = data.tasks.filter((t) => !t.completed).map((t) => t.domain);
-    const domainCounts: Record<string, number> = {};
-    for (const d of taskDomains) domainCounts[d] = (domainCounts[d] || 0) + 1;
-    const neglected = ["personal", "family", "work", "growth"].filter((d) => !domainCounts[d]);
-    if (neglected.length > 0 && neglected.length < 4) {
-      nudges.push(makeNudge("self", `No active tasks in ${neglected.join(", ")}. Tomorrow, add at least one intentional action in each area.`, todayStr));
-    }
-  }
-
-  // ========================================
-  // ALWAYS — Time-independent nudges
-  // ========================================
-
-  // Journal lapse
-  if (journalLogs.length > 0 && recentJournal.length === 0) {
-    nudges.push(makeNudge("self", "You haven't journaled in over 2 weeks. The data you log shapes the guidance you get. Take 2 minutes to reflect.", todayStr));
+    // Reflection, gratitude, domain balance handled by evening survey — not nudge cards
   }
 
   // Filter out completed nudges
