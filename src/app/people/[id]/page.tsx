@@ -5,12 +5,12 @@ import { useState, useMemo, use } from "react";
 import { useRouter } from "next/navigation";
 
 const CONNECTION_TYPES = [
-  { key: "call", label: "Called", icon: "📞" },
-  { key: "text", label: "Texted", icon: "💬" },
-  { key: "in-person", label: "In Person", icon: "🤝" },
-  { key: "activity", label: "Activity", icon: "🎯" },
-  { key: "gift", label: "Gift/Surprise", icon: "🎁" },
-  { key: "note", label: "Note/Letter", icon: "✉️" },
+  { key: "call", label: "Called" },
+  { key: "text", label: "Texted" },
+  { key: "in-person", label: "In Person" },
+  { key: "activity", label: "Activity" },
+  { key: "gift", label: "Gift/Surprise" },
+  { key: "note", label: "Note/Letter" },
 ] as const;
 
 export default function PersonDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -152,7 +152,6 @@ export default function PersonDetailPage({ params }: { params: Promise<{ id: str
                     logType === t.key ? "bg-accent text-white" : "bg-card-border text-muted"
                   }`}
                 >
-                  <div className="text-base mb-0.5">{t.icon}</div>
                   {t.label}
                 </button>
               ))}
@@ -170,7 +169,7 @@ export default function PersonDetailPage({ params }: { params: Promise<{ id: str
                     logMood === n ? "bg-accent text-white scale-110" : "bg-card-border text-muted"
                   }`}
                 >
-                  {["😞", "😕", "😐", "🙂", "😄"][n - 1]}
+                  {n}
                 </button>
               ))}
             </div>
@@ -202,13 +201,8 @@ export default function PersonDetailPage({ params }: { params: Promise<{ id: str
           <div className="space-y-2">
             {insights.map((insight, i) => (
               <div key={i} className={`border rounded-xl p-3 ${insight.bg}`}>
-                <div className="flex items-start gap-2">
-                  <span className="text-sm">{insight.icon}</span>
-                  <div>
-                    <div className="text-xs font-semibold text-muted uppercase mb-1">{insight.label}</div>
-                    <p className="text-sm leading-relaxed">{insight.message}</p>
-                  </div>
-                </div>
+                <div className="text-xs font-semibold text-muted uppercase mb-1">{insight.label}</div>
+                <p className="text-sm leading-relaxed">{insight.message}</p>
               </div>
             ))}
           </div>
@@ -228,18 +222,13 @@ export default function PersonDetailPage({ params }: { params: Promise<{ id: str
         )}
         <div className="space-y-2">
           {logs.slice(0, 20).map((log) => {
-            const typeInfo = CONNECTION_TYPES.find((t) => t.key === log.type);
             return (
               <div key={log.id} className="bg-card border border-card-border rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm">{typeInfo?.icon}</span>
                   <span className="text-xs font-medium capitalize">{log.type}</span>
                   <span className="text-[10px] text-muted ml-auto">
                     {formatDate(log.date)}
                   </span>
-                  {log.mood && (
-                    <span className="text-xs">{["😞", "😕", "😐", "🙂", "😄"][log.mood - 1]}</span>
-                  )}
                 </div>
                 {log.note && (
                   <p className="text-xs text-muted mt-1 pl-6">{log.note}</p>
@@ -256,7 +245,6 @@ export default function PersonDetailPage({ params }: { params: Promise<{ id: str
 // --- Insight Engine ---
 
 interface Insight {
-  icon: string;
   label: string;
   message: string;
   bg: string;
@@ -287,14 +275,12 @@ function computeInsights(
     const olderAvg = olderMoods.reduce((a, b) => a + b, 0) / olderMoods.length;
     if (recentAvg < olderAvg - 0.5) {
       insights.push({
-        icon: "📉",
         label: "Trend",
         message: `Your connection quality with ${name} has been declining. The average went from ${olderAvg.toFixed(1)} to ${recentAvg.toFixed(1)}. Consider changing how you're connecting — maybe more in-person time.`,
         bg: "bg-danger/5 border-danger/20",
       });
     } else if (recentAvg > olderAvg + 0.5) {
       insights.push({
-        icon: "📈",
         label: "Trend",
         message: `Things are trending up with ${name}. Quality went from ${olderAvg.toFixed(1)} to ${recentAvg.toFixed(1)}. Whatever you're doing, keep doing it.`,
         bg: "bg-success/5 border-success/20",
@@ -306,7 +292,6 @@ function computeInsights(
   const types = new Set(recentLogs.map((l) => l.type));
   if (recentLogs.length >= 5 && types.size <= 1) {
     insights.push({
-      icon: "🔄",
       label: "Variety",
       message: `You've only been connecting via ${[...types][0]}. Try mixing it up — an unexpected call, a handwritten note, or quality time doing something together.`,
       bg: "bg-warning/5 border-warning/20",
@@ -318,19 +303,18 @@ function computeInsights(
 
   if (relationship === "wife") {
     const wifeInsights = [
-      { icon: "💡", label: "Today", message: `What's the most important thing happening in ${name}'s world right now? If you don't know, that's the problem.`, bg: "bg-family/5 border-family/20" },
-      { icon: "🔥", label: "Challenge", message: `When's the last time you dated ${name}? Not dinner-and-a-movie routine. Something that shows thought and effort.`, bg: "bg-accent/5 border-accent/20" },
-      { icon: "🪞", label: "Reflection", message: `If ${name} described you to her closest friend right now, what would she say? Would you be proud of that description?`, bg: "bg-personal/5 border-personal/20" },
-      { icon: "🎯", label: "Action", message: `Her love language might not be yours. Think about what makes HER feel loved — words, acts, time, touch, gifts. Do that thing today.`, bg: "bg-growth/5 border-growth/20" },
-      { icon: "⚡", label: "Quick win", message: `Handle something she normally handles. Don't announce it. Don't wait for credit. Just do it.`, bg: "bg-success/5 border-success/20" },
-      { icon: "💬", label: "Connect", message: `Ask ${name}: "What's one thing I could do this week that would really help you?" Then do it.`, bg: "bg-family/5 border-family/20" },
-      { icon: "❤️", label: "Presence", message: `Tonight: phones down, TV off, 20 minutes. Ask about her dreams, her fears, what she's excited about. Be curious about the woman you married.`, bg: "bg-danger/5 border-danger/20" },
+      { label: "Today", message: `What's the most important thing happening in ${name}'s world right now? If you don't know, that's the problem.`, bg: "bg-family/5 border-family/20" },
+      { label: "Challenge", message: `When's the last time you dated ${name}? Not dinner-and-a-movie routine. Something that shows thought and effort.`, bg: "bg-accent/5 border-accent/20" },
+      { label: "Reflection", message: `If ${name} described you to her closest friend right now, what would she say? Would you be proud of that description?`, bg: "bg-personal/5 border-personal/20" },
+      { label: "Action", message: `Her love language might not be yours. Think about what makes HER feel loved — words, acts, time, touch, gifts. Do that thing today.`, bg: "bg-growth/5 border-growth/20" },
+      { label: "Quick win", message: `Handle something she normally handles. Don't announce it. Don't wait for credit. Just do it.`, bg: "bg-success/5 border-success/20" },
+      { label: "Connect", message: `Ask ${name}: "What's one thing I could do this week that would really help you?" Then do it.`, bg: "bg-family/5 border-family/20" },
+      { label: "Presence", message: `Tonight: phones down, TV off, 20 minutes. Ask about her dreams, her fears, what she's excited about. Be curious about the woman you married.`, bg: "bg-danger/5 border-danger/20" },
     ];
     insights.push(wifeInsights[dayIdx % wifeInsights.length]);
 
     if (avgMood < 3) {
       insights.push({
-        icon: "🫂",
         label: "Your state",
         message: `You've been running low this week. ${name} can probably feel it. Don't withdraw — let her in. Vulnerability isn't weakness, it's trust.`,
         bg: "bg-personal/5 border-personal/20",
@@ -340,20 +324,19 @@ function computeInsights(
 
   if (relationship === "child") {
     const kidInsights = [
-      { icon: "👂", label: "Today", message: `Kids spell love T-I-M-E. Give ${name} 15 minutes of fully undivided attention today.`, bg: "bg-family/5 border-family/20" },
-      { icon: "🌱", label: "Growth", message: `What's ${name} struggling with right now? Not academically — emotionally. Do they feel safe telling you the hard things?`, bg: "bg-growth/5 border-growth/20" },
-      { icon: "🏆", label: "Encourage", message: `Catch ${name} doing something right today. Be specific about what you noticed and why it matters.`, bg: "bg-success/5 border-success/20" },
-      { icon: "🎮", label: "Their world", message: `Enter ${name}'s world today. What are they into? Play their game, watch their show, learn their thing. It tells them their world matters to you.`, bg: "bg-accent/5 border-accent/20" },
-      { icon: "🛡️", label: "Safety", message: `Does ${name} know they can fail and you'll still be there? Make sure they know your love isn't performance-based.`, bg: "bg-personal/5 border-personal/20" },
-      { icon: "📖", label: "Story", message: `Tell ${name} a story about when you were their age. Kids need to know you were once figuring it out too.`, bg: "bg-warning/5 border-warning/20" },
-      { icon: "🤔", label: "Question", message: `Instead of "How was school?" try "What made you laugh today?" or "What was the hardest part of your day?"`, bg: "bg-family/5 border-family/20" },
+      { label: "Today", message: `Kids spell love T-I-M-E. Give ${name} 15 minutes of fully undivided attention today.`, bg: "bg-family/5 border-family/20" },
+      { label: "Growth", message: `What's ${name} struggling with right now? Not academically — emotionally. Do they feel safe telling you the hard things?`, bg: "bg-growth/5 border-growth/20" },
+      { label: "Encourage", message: `Catch ${name} doing something right today. Be specific about what you noticed and why it matters.`, bg: "bg-success/5 border-success/20" },
+      { label: "Their world", message: `Enter ${name}'s world today. What are they into? Play their game, watch their show, learn their thing. It tells them their world matters to you.`, bg: "bg-accent/5 border-accent/20" },
+      { label: "Safety", message: `Does ${name} know they can fail and you'll still be there? Make sure they know your love isn't performance-based.`, bg: "bg-personal/5 border-personal/20" },
+      { label: "Story", message: `Tell ${name} a story about when you were their age. Kids need to know you were once figuring it out too.`, bg: "bg-warning/5 border-warning/20" },
+      { label: "Question", message: `Instead of "How was school?" try "What made you laugh today?" or "What was the hardest part of your day?"`, bg: "bg-family/5 border-family/20" },
     ];
     insights.push(kidInsights[dayIdx % kidInsights.length]);
   }
 
   if (relationship === "parent" || relationship === "grandparent") {
     insights.push({
-      icon: "⏳",
       label: "Perspective",
       message: daysSince >= 14
         ? `${daysSince} days since you connected with ${name}. Every day you have with them is a gift you won't always have. Pick up the phone.`
@@ -365,7 +348,6 @@ function computeInsights(
   // Frequency insight
   if (recentLogs.length === 0 && logs.length > 0) {
     insights.push({
-      icon: "📊",
       label: "Pattern",
       message: `You haven't connected with ${name} at all in the last 30 days. Before that, you were averaging ${olderLogs.length} connections per month. Something shifted — was it intentional?`,
       bg: "bg-danger/5 border-danger/20",

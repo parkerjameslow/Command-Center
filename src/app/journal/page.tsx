@@ -4,14 +4,14 @@ import { useStore, uid, today } from "@/lib/store";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const CATEGORY_INFO: Record<string, { icon: string; label: string; color: string }> = {
-  gratitude: { icon: "✨", label: "Gratitude", color: "bg-warning/10 border-warning/20" },
-  connection: { icon: "💬", label: "Connection", color: "bg-family/10 border-family/20" },
-  service: { icon: "❤️", label: "Service", color: "bg-personal/10 border-personal/20" },
-  reflection: { icon: "🧠", label: "Reflection", color: "bg-growth/10 border-growth/20" },
-  win: { icon: "🏆", label: "Win", color: "bg-success/10 border-success/20" },
-  lesson: { icon: "📖", label: "Lesson", color: "bg-accent/10 border-accent/20" },
-  nudge: { icon: "💡", label: "Nudge", color: "bg-work/10 border-work/20" },
+const CATEGORY_INFO: Record<string, { label: string; color: string }> = {
+  gratitude: { label: "Gratitude", color: "bg-warning/10 border-warning/20" },
+  connection: { label: "Connection", color: "bg-family/10 border-family/20" },
+  service: { label: "Service", color: "bg-personal/10 border-personal/20" },
+  reflection: { label: "Reflection", color: "bg-growth/10 border-growth/20" },
+  win: { label: "Win", color: "bg-success/10 border-success/20" },
+  lesson: { label: "Lesson", color: "bg-accent/10 border-accent/20" },
+  nudge: { label: "Nudge", color: "bg-work/10 border-work/20" },
 };
 
 const QUICK_ADD_CATEGORIES = [
@@ -176,7 +176,7 @@ export default function JournalPage() {
                   addCategory === cat.key ? "bg-accent text-white" : "bg-card-border text-muted"
                 }`}
               >
-                {CATEGORY_INFO[cat.key]?.icon} {cat.label}
+                {cat.label}
               </button>
             ))}
           </div>
@@ -201,7 +201,7 @@ export default function JournalPage() {
                     addMood === n ? "bg-accent text-white scale-110" : "bg-card-border"
                   }`}
                 >
-                  {["😞", "😕", "😐", "🙂", "😄"][n - 1]}
+                  {n}
                 </button>
               ))}
             </div>

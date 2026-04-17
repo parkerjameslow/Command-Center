@@ -84,8 +84,7 @@ export default function MiddayCheckinPage() {
   if (existingMidday) {
     return (
       <div className="max-w-lg mx-auto px-4 py-6 text-center py-12">
-        <div className="text-4xl mb-4">☀️</div>
-        <h1 className="text-xl font-bold mb-2">Midday check-in complete</h1>
+        <h1 className="text-xl font-bold mb-2 mt-4">Midday check-in complete</h1>
         <p className="text-muted text-sm mb-6">Keep the momentum going this afternoon.</p>
         <button onClick={() => router.push("/")} className="px-6 py-2 bg-accent text-white rounded-xl text-sm font-medium">
           Back to Dashboard
@@ -174,8 +173,8 @@ export default function MiddayCheckinPage() {
       <div className="flex justify-center gap-3">
         {[1, 2, 3, 4, 5].map((n) => (
           <button key={n} onClick={() => setEnergy(n)}
-            className={`w-14 h-14 rounded-full text-2xl flex items-center justify-center transition-all ${energy === n ? "bg-accent text-white scale-110" : "bg-card border border-card-border"}`}>
-            {["🔋", "🪫", "⚡", "💪", "🔥"][n - 1]}
+            className={`w-14 h-14 rounded-full text-lg font-semibold flex items-center justify-center transition-all ${energy === n ? "bg-accent text-white scale-110" : "bg-card border border-card-border"}`}>
+            {n}
           </button>
         ))}
       </div>

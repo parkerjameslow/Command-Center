@@ -612,8 +612,22 @@ export default function Dashboard() {
               const personalHabits = dailyHabits.filter((h) => h.domain === "personal");
               const personalDone = personalHabits.filter((h) => todayLogs.find((l) => l.habitId === h.id && l.completed)).length;
               const journalCount = (data.journalLogs || []).filter((j) => daysBetween(j.date, todayStr) <= 7).length;
-              const recentMoods = data.journal.filter((j) => j.mood && daysBetween(j.date, todayStr) <= 7).map((j) => j.mood!);
-              const avgMood = recentMoods.length > 0 ? (recentMoods.reduce((a, b) => a + b, 0) / recentMoods.length).toFixed(1) : "—";
+
+              // Broadened mood average: pull from all mood signals in last 7 days
+              const allMoods: number[] = [];
+              // Morning/evening check-ins
+              for (const j of data.journal) {
+                if (j.mood && daysBetween(j.date, todayStr) <= 7) allMoods.push(j.mood);
+              }
+              // Journal log moods (gratitude, win, reflection, lesson, nudge responses, midday check-in)
+              for (const j of (data.journalLogs || [])) {
+                if (j.mood && daysBetween(j.date, todayStr) <= 7) allMoods.push(j.mood);
+              }
+              // Connection log moods (how did that call/text feel)
+              for (const c of (data.connectionLogs || [])) {
+                if (c.mood && daysBetween(c.date, todayStr) <= 7) allMoods.push(c.mood);
+              }
+              const avgMood = allMoods.length > 0 ? (allMoods.reduce((a, b) => a + b, 0) / allMoods.length).toFixed(1) : "—";
               return (
                 <div className="text-xs text-muted space-y-1">
                   {personalHabits.length > 0 && <div>{personalDone}/{personalHabits.length} habits done</div>}

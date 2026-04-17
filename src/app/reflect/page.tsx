@@ -25,7 +25,6 @@ export default function ReflectPage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
         <div className="text-center py-12">
-          <div className="text-4xl mb-4">&#127769;</div>
           <h1 className="text-xl font-bold mb-2">Evening reflection complete</h1>
           <p className="text-muted text-sm mb-4">
             Mood: {existingEntry.mood}/5 | Energy: {existingEntry.energy}/5
@@ -117,13 +116,13 @@ export default function ReflectPage() {
           <button
             key={n}
             onClick={() => setMood(n)}
-            className={`w-14 h-14 rounded-full text-2xl flex items-center justify-center transition-all ${
+            className={`w-14 h-14 rounded-full text-lg font-semibold flex items-center justify-center transition-all ${
               mood === n
                 ? "bg-accent text-white scale-110"
                 : "bg-card border border-card-border"
             }`}
           >
-            {["😞", "😕", "😐", "🙂", "😄"][n - 1]}
+            {n}
           </button>
         ))}
       </div>
@@ -249,7 +248,6 @@ export default function ReflectPage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <div className="text-center">
-          <div className="text-4xl mb-3">&#127769;</div>
           <h1 className="text-xl font-bold">Reflection saved</h1>
         </div>
 

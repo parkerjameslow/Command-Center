@@ -92,11 +92,11 @@ export function NudgeAction({ nudge, personName, onSave, onClose }: NudgeActionP
                 <button
                   key={n}
                   onClick={() => setMood(n)}
-                  className={`w-12 h-12 rounded-full text-xl flex items-center justify-center transition-all ${
+                  className={`w-12 h-12 rounded-full text-base font-semibold flex items-center justify-center transition-all ${
                     mood === n ? "bg-accent text-white scale-110" : "bg-card border border-card-border"
                   }`}
                 >
-                  {["😞", "😕", "😐", "🙂", "😄"][n - 1]}
+                  {n}
                 </button>
               ))}
             </div>

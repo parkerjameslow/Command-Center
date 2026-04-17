@@ -25,7 +25,6 @@ export default function CheckInPage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-6">
         <div className="text-center py-12">
-          <div className="text-4xl mb-4">&#10003;</div>
           <h1 className="text-xl font-bold mb-2">Already checked in today</h1>
           <p className="text-muted text-sm mb-6">
             Mood: {existingEntry.mood}/5 | Energy: {existingEntry.energy}/5
@@ -50,13 +49,13 @@ export default function CheckInPage() {
           <button
             key={n}
             onClick={() => setMood(n)}
-            className={`w-14 h-14 rounded-full text-2xl flex items-center justify-center transition-all ${
+            className={`w-14 h-14 rounded-full text-lg font-semibold flex items-center justify-center transition-all ${
               mood === n
                 ? "bg-accent text-white scale-110"
                 : "bg-card border border-card-border"
             }`}
           >
-            {["😞", "😕", "😐", "🙂", "😄"][n - 1]}
+            {n}
           </button>
         ))}
       </div>
@@ -234,7 +233,6 @@ export default function CheckInPage() {
     return (
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <div className="text-center">
-          <div className="text-4xl mb-3">&#9728;&#65039;</div>
           <h1 className="text-xl font-bold">You&apos;re set for today</h1>
         </div>
 
