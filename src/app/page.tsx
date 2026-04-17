@@ -18,6 +18,9 @@ export default function Dashboard() {
   const todayStr = today();
   const [view, setView] = useState<"dashboard" | "high" | "all">("dashboard");
 
+  // All hooks must be before any early return
+  const nudges = useMemo(() => generateNudges(data, todayStr), [data, todayStr]);
+
   if (!loaded) {
     return <div className="flex items-center justify-center h-screen text-muted">Loading...</div>;
   }
@@ -39,9 +42,6 @@ export default function Dashboard() {
   // Greeting
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-
-  // Smart nudges
-  const nudges = useMemo(() => generateNudges(data, todayStr), [data, todayStr]);
 
   function completeNudge(nudgeId: string) {
     update((d) => ({
