@@ -17,7 +17,7 @@ const DOMAINS = [
 export default function Dashboard() {
   const { data, loaded, update } = useStore();
   const todayStr = today();
-  const [view, setView] = useState<"dashboard" | "high" | "all">("dashboard");
+  const [view, setView] = useState<"dashboard" | "high" | "all" | "people">("dashboard");
 
   // All hooks must be before any early return
   const nudges = useMemo(() => generateNudges(data, todayStr), [data, todayStr]);
@@ -80,6 +80,81 @@ export default function Dashboard() {
   }
 
   // Drill-down views
+  // People drill-down view
+  if (view === "people") {
+    const peopleWithStatus = data.people
+      .map((person) => {
+        const days = person.lastContact
+          ? Math.floor((new Date(todayStr + "T00:00:00").getTime() - new Date(person.lastContact + "T00:00:00").getTime()) / 86400000)
+          : 999;
+        const ratio = days / person.contactFrequency;
+        const status: "good" | "due" | "overdue" =
+          ratio < 0.7 ? "good" : ratio < 1 ? "due" : "overdue";
+        const daysUntilDue = Math.max(0, person.contactFrequency - days);
+        return { person, days, status, ratio, daysUntilDue };
+      })
+      .sort((a, b) => b.ratio - a.ratio);
+
+    return (
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setView("dashboard")} className="text-muted hover:text-foreground">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <h1 className="text-xl font-bold">My People</h1>
+        </div>
+
+        {peopleWithStatus.map(({ person, days, status, daysUntilDue }) => {
+          const suggestion = getPersonSuggestion(person, days);
+          return (
+            <Link
+              key={person.id}
+              href={`/people/${person.id}`}
+              className={`block bg-card border rounded-xl p-4 ${
+                status === "overdue"
+                  ? "border-danger/30"
+                  : status === "due"
+                  ? "border-warning/30"
+                  : "border-card-border"
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                  status === "overdue" ? "bg-danger animate-pulse" : status === "due" ? "bg-warning" : "bg-success"
+                }`} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{person.name}</span>
+                    <span className="text-[10px] text-muted capitalize">{person.relationship}</span>
+                  </div>
+                  <div className="text-[11px] text-muted">
+                    {days === 0 ? "Connected today" : days === 999 ? "No contact yet" : `${days}d ago`}
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  {status === "overdue" ? (
+                    <span className="text-xs text-danger font-medium">Overdue</span>
+                  ) : status === "due" ? (
+                    <span className="text-xs text-warning font-medium">Due soon</span>
+                  ) : (
+                    <span className="text-[11px] text-muted">{daysUntilDue}d left</span>
+                  )}
+                </div>
+              </div>
+              {suggestion && (
+                <div className="text-[12px] text-muted italic leading-relaxed pl-6">
+                  {suggestion}
+                </div>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    );
+  }
+
   if (view === "high" || view === "all") {
     const tasksToShow = view === "high" ? highPriority : pendingTasks;
     const title = view === "high" ? "High Priority Tasks" : "All Open Tasks";
@@ -203,12 +278,48 @@ export default function Dashboard() {
         </Link>
       )}
 
-      {/* People Pulse */}
-      <PeoplePulse
-        data={data}
-        todayStr={todayStr}
-        onConnect={markPersonContact}
-      />
+      {/* People Summary Card */}
+      {data.people.length > 0 && (() => {
+        const total = data.people.length;
+        const connectedToday = data.people.filter((p) => p.lastContact === todayStr).length;
+        const overdue = data.people.filter((p) => {
+          if (!p.lastContact) return true;
+          const days = Math.floor((new Date(todayStr + "T00:00:00").getTime() - new Date(p.lastContact + "T00:00:00").getTime()) / 86400000);
+          return days >= p.contactFrequency;
+        }).length;
+        return (
+          <button
+            onClick={() => setView("people")}
+            className="w-full bg-card border border-card-border rounded-xl p-4 text-left hover:border-family/30 transition-colors"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">My People</h2>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <div className="text-xl font-bold text-foreground">{total}</div>
+                <div className="text-[10px] text-muted">Tracked</div>
+              </div>
+              <div>
+                <div className={`text-xl font-bold ${connectedToday > 0 ? "text-success" : "text-muted"}`}>{connectedToday}</div>
+                <div className="text-[10px] text-muted">Today</div>
+              </div>
+              <div>
+                <div className={`text-xl font-bold ${overdue > 0 ? "text-danger" : "text-success"}`}>{overdue}</div>
+                <div className="text-[10px] text-muted">Overdue</div>
+              </div>
+            </div>
+            {overdue > 0 && (
+              <div className="mt-3 text-xs text-danger/80 text-center">
+                {overdue} {overdue === 1 ? "person needs" : "people need"} your attention
+              </div>
+            )}
+          </button>
+        );
+      })()}
 
       {/* Smart Nudges */}
       <NudgeCards
@@ -323,4 +434,36 @@ export default function Dashboard() {
       )}
     </div>
   );
+}
+
+function getPersonSuggestion(person: { name: string; relationship: string; contactFrequency: number }, days: number): string | null {
+  const { name, relationship } = person;
+  const hour = new Date().getHours();
+  const dayIdx = Math.floor(Date.now() / 86400000);
+
+  if (days === 0) return null;
+  if (days < person.contactFrequency * 0.7) return null;
+
+  if (relationship === "wife") {
+    const msgs = [
+      hour < 12 ? `Send ${name} a text — not logistics, something real.` : `Put the phone down tonight and be present with ${name}.`,
+      `What's weighing on ${name} right now? Ask and just listen.`,
+      `Do something for ${name} today she wouldn't expect.`,
+    ];
+    return msgs[dayIdx % msgs.length];
+  }
+  if (relationship === "child") {
+    const msgs = [
+      `Ask ${name} a specific question about their day — not "how was school."`,
+      `Give ${name} 15 minutes of undivided attention today.`,
+      `Tell ${name} something specific you're proud of them for.`,
+    ];
+    return msgs[dayIdx % msgs.length];
+  }
+  if (relationship === "parent" || relationship === "grandparent") {
+    return days >= 14
+      ? `${days} days. Call ${name} today — they won't be here forever.`
+      : `A quick call to ${name} would make their day.`;
+  }
+  return `Reach out to ${name}. Connection takes intention.`;
 }
