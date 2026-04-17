@@ -22,6 +22,7 @@ export function DomainPage({ domain, title, color, description }: DomainPageProp
   const [newGoalTitle, setNewGoalTitle] = useState("");
   const [newGoalTarget, setNewGoalTarget] = useState("");
   const [newGoalUnit, setNewGoalUnit] = useState("");
+  const [completingTasks, setCompletingTasks] = useState<Set<string>>(new Set());
 
   if (!loaded) {
     return <div className="flex items-center justify-center h-screen text-muted">Loading...</div>;
@@ -95,8 +96,6 @@ export function DomainPage({ domain, title, color, description }: DomainPageProp
     setNewGoalUnit("");
     setShowAddGoal(false);
   }
-
-  const [completingTasks, setCompletingTasks] = useState<Set<string>>(new Set());
 
   function toggleTask(taskId: string) {
     const task = data.tasks.find((t) => t.id === taskId);
