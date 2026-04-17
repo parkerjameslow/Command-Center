@@ -376,13 +376,13 @@ export default function Dashboard() {
           <div className="text-muted text-sm mt-1">Morning check-in</div>
         </Link>
       )}
-      {todayJournal && !eveningJournal && hour >= 17 && (
+      {todayJournal && !eveningJournal && (
         <Link
           href="/reflect"
           className="block bg-personal/10 border border-personal/20 rounded-xl p-4 text-center"
         >
-          <div className="text-personal font-semibold">Wind down</div>
-          <div className="text-muted text-sm mt-1">Evening reflection</div>
+          <div className="text-personal font-semibold">End of day check-in</div>
+          <div className="text-muted text-sm mt-1">Reflect, log wins, and plan tomorrow</div>
         </Link>
       )}
 
@@ -429,11 +429,12 @@ export default function Dashboard() {
         );
       })()}
 
-      {/* Smart Nudges */}
+      {/* Smart Nudges — time-phased */}
       <NudgeCards
         nudges={nudges}
         people={data.people}
         onNudgeTap={setActiveNudge}
+        phase={hour < 12 ? "morning" : hour < 17 ? "midday" : "evening"}
       />
 
       {/* Nudge Action Modal */}

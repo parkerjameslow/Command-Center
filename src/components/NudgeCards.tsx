@@ -14,21 +14,25 @@ interface NudgeCardsProps {
   nudges: Nudge[];
   people: AppData["people"];
   onNudgeTap: (nudge: Nudge) => void;
+  phase?: "morning" | "midday" | "evening";
 }
 
-export function NudgeCards({ nudges, people, onNudgeTap }: NudgeCardsProps) {
+const PHASE_LABELS = {
+  morning: "Morning Focus",
+  midday: "Midday Check-in",
+  evening: "Evening Wind-down",
+};
+
+export function NudgeCards({ nudges, people, onNudgeTap, phase }: NudgeCardsProps) {
   if (nudges.length === 0) return null;
 
-  const hour = new Date().getHours();
-  const startIdx = Math.floor(hour / 3) % Math.max(1, nudges.length);
-  const visible = nudges.slice(startIdx, startIdx + 3).length >= 1
-    ? nudges.slice(startIdx, startIdx + 3)
-    : nudges.slice(0, 3);
+  // Show up to 4 nudges
+  const visible = nudges.slice(0, 4);
 
   return (
     <section>
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted mb-3">
-        Nudges
+        {phase ? PHASE_LABELS[phase] : "Nudges"}
       </h2>
       <div className="space-y-2">
         {visible.map((nudge) => {
