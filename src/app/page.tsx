@@ -54,7 +54,13 @@ export default function Dashboard() {
   function handleNudgeSave(response: string, mood: number) {
     if (!activeNudge) return;
 
-    // Mark nudge as completed
+    const journalCategory = activeNudge.type === "gratitude" ? "gratitude" as const
+      : activeNudge.type === "service" ? "service" as const
+      : activeNudge.type === "relationship" ? "connection" as const
+      : activeNudge.type === "chore" ? "win" as const
+      : "reflection" as const;
+
+    // Mark nudge as completed AND always add a journal entry
     update((d) => ({
       ...d,
       nudges: [...d.nudges, {
@@ -67,28 +73,21 @@ export default function Dashboard() {
         date: todayStr,
         createdAt: new Date().toISOString(),
       }],
-      // Add to journal log if they wrote something
-      ...(response ? {
-        journalLogs: [...d.journalLogs, {
-          id: uid(),
-          date: todayStr,
-          category: activeNudge.type === "gratitude" ? "gratitude" as const
-            : activeNudge.type === "service" ? "service" as const
-            : activeNudge.type === "relationship" ? "connection" as const
-            : activeNudge.type === "chore" ? "win" as const
-            : "reflection" as const,
-          title: activeNudge.message.slice(0, 80),
-          content: response,
-          mood,
-          relatedPersonId: activeNudge.personId || undefined,
-          nudgeType: activeNudge.type,
-          createdAt: new Date().toISOString(),
-        }],
-      } : {}),
+      journalLogs: [...d.journalLogs, {
+        id: uid(),
+        date: todayStr,
+        category: journalCategory,
+        title: activeNudge.message.slice(0, 80),
+        content: response || "Completed without notes",
+        mood,
+        relatedPersonId: activeNudge.personId || undefined,
+        nudgeType: activeNudge.type,
+        createdAt: new Date().toISOString(),
+      }],
     }));
 
-    // If it's a relationship nudge and they responded, mark person as connected
-    if (activeNudge.personId && response) {
+    // If it's a relationship nudge, mark person as connected
+    if (activeNudge.personId) {
       markPersonContact(activeNudge.personId);
     }
 
