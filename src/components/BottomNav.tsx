@@ -2,17 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const tabs = [
-  { href: "/", label: "Home", icon: HomeIcon },
-  { href: "/personal", label: "Personal", icon: PersonalIcon },
-  { href: "/family", label: "Family", icon: FamilyIcon },
-  { href: "/work", label: "Work", icon: WorkIcon },
-  { href: "/growth", label: "Growth", icon: GrowthIcon },
-];
+import { useStore } from "@/lib/store";
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { data } = useStore();
+  const peopleCount = data.people.length;
+
+  const tabs = [
+    { href: "/", label: "Home", icon: HomeIcon, badge: 0 },
+    { href: "/personal", label: "Personal", icon: PersonalIcon, badge: peopleCount },
+    { href: "/family", label: "Family", icon: FamilyIcon, badge: 0 },
+    { href: "/work", label: "Work", icon: WorkIcon, badge: 0 },
+    { href: "/growth", label: "Growth", icon: GrowthIcon, badge: 0 },
+  ];
 
   return (
     <nav className="bottom-nav fixed bottom-0 left-0 right-0 bg-card border-t border-card-border z-50">
@@ -26,13 +29,20 @@ export function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg min-w-[60px] ${
+              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg min-w-[60px] ${
                 isActive
                   ? "text-accent"
                   : "text-muted hover:text-foreground"
               }`}
             >
-              <tab.icon active={isActive} />
+              <div className="relative">
+                <tab.icon active={isActive} />
+                {tab.badge > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 bg-personal text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    {tab.badge}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-medium">{tab.label}</span>
             </Link>
           );
