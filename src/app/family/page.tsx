@@ -1,11 +1,17 @@
 "use client";
 
 import { DomainPage } from "@/components/DomainPage";
-import { useStore, uid } from "@/lib/store";
-import { useState } from "react";
+import { Top3Suggestions } from "@/components/Top3Suggestions";
+import { useStore, uid, today } from "@/lib/store";
+import { generateFamilySuggestions } from "@/lib/suggestions";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 
 export default function FamilyPage() {
+  const { data } = useStore();
+  const todayStr = today();
+  const suggestions = useMemo(() => generateFamilySuggestions(data, todayStr), [data, todayStr]);
+
   return (
     <div>
       <DomainPage
@@ -17,18 +23,26 @@ export default function FamilyPage() {
       <div className="max-w-lg mx-auto px-4 pb-4">
         <Link
           href="/people"
-          className="flex items-center gap-3 bg-card border border-card-border rounded-xl p-4 hover:border-family/30 transition-colors"
+          className="flex items-center justify-between bg-card border border-card-border rounded-xl p-4 hover:border-family/30 transition-colors"
         >
-          <span className="text-xl">❤️</span>
           <div>
             <div className="text-sm font-medium">My People</div>
             <div className="text-xs text-muted">Track relationships and stay connected</div>
           </div>
-          <svg className="ml-auto text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg className="text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </Link>
       </div>
+
+      <Top3Suggestions
+        title="Today's Top 3"
+        subtitle="Most impactful actions for your wife, kids, and family today."
+        suggestions={suggestions}
+        domain="family"
+        journalCategory="connection"
+      />
+
       <FamilyCalendar />
     </div>
   );

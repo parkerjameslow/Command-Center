@@ -85,8 +85,12 @@ export default function ChoresPage() {
             <div className="text-[9px] text-muted">Nudges Done</div>
           </div>
         </div>
+      </div>
 
-        <section className="mb-6">
+      <DomainPage domain="work" title="" color="bg-work" description="" />
+
+      <div className="max-w-lg mx-auto px-4 pb-6">
+        <section>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted mb-2">Today&apos;s Top 3</h2>
           <p className="text-xs text-muted mb-3">Highest-impact house tasks based on your patterns.</p>
           <div className="space-y-2">
@@ -114,8 +118,6 @@ export default function ChoresPage() {
           </div>
         </section>
       </div>
-
-      <DomainPage domain="work" title="" color="bg-work" description="" />
 
       {/* Add to Tasks Modal */}
       {addModal && (

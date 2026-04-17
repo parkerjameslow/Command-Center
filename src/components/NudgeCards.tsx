@@ -18,9 +18,9 @@ interface NudgeCardsProps {
 }
 
 const PHASE_LABELS = {
-  morning: "Morning Focus",
-  midday: "Midday Check-in",
-  evening: "Evening Wind-down",
+  morning: "Nudges",
+  midday: "Nudges",
+  evening: "Nudges",
 };
 
 export function NudgeCards({ nudges, people, onNudgeTap, phase }: NudgeCardsProps) {

@@ -96,13 +96,36 @@ export function DomainPage({ domain, title, color, description }: DomainPageProp
     setShowAddGoal(false);
   }
 
+  const [completingTasks, setCompletingTasks] = useState<Set<string>>(new Set());
+
   function toggleTask(taskId: string) {
-    update((d) => ({
-      ...d,
-      tasks: d.tasks.map((t) =>
-        t.id === taskId ? { ...t, completed: !t.completed } : t
-      ),
-    }));
+    const task = data.tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    // If marking as complete, animate first
+    if (!task.completed) {
+      setCompletingTasks((prev) => new Set(prev).add(taskId));
+      setTimeout(() => {
+        update((d) => ({
+          ...d,
+          tasks: d.tasks.map((t) =>
+            t.id === taskId ? { ...t, completed: true } : t
+          ),
+        }));
+        setCompletingTasks((prev) => {
+          const next = new Set(prev);
+          next.delete(taskId);
+          return next;
+        });
+      }, 500);
+    } else {
+      // Uncomplete immediately (no animation needed)
+      update((d) => ({
+        ...d,
+        tasks: d.tasks.map((t) =>
+          t.id === taskId ? { ...t, completed: false } : t
+        ),
+      }));
+    }
   }
 
   function deleteTask(taskId: string) {
@@ -265,33 +288,48 @@ export function DomainPage({ domain, title, color, description }: DomainPageProp
               const order = { high: 0, medium: 1, low: 2 };
               return order[a.priority] - order[b.priority];
             })
-            .map((task) => (
-              <div
-                key={task.id}
-                className="bg-card border border-card-border rounded-xl p-3 flex items-center gap-3"
-              >
-                <button
-                  onClick={() => toggleTask(task.id)}
-                  className={`w-5 h-5 rounded border-2 flex-shrink-0 ${
-                    task.priority === "high"
-                      ? "border-danger"
-                      : task.priority === "medium"
-                      ? "border-warning"
-                      : "border-success"
+            .map((task) => {
+              const isCompleting = completingTasks.has(task.id);
+              return (
+                <div
+                  key={task.id}
+                  className={`bg-card border border-card-border rounded-xl p-3 flex items-center gap-3 transition-all duration-500 ${
+                    isCompleting ? "opacity-0 scale-95 bg-success/10 border-success/40" : "opacity-100"
                   }`}
-                />
-                <span className="flex-1 text-sm">{task.title}</span>
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  className="text-muted hover:text-danger text-xs p-1"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            ))}
+                  <button
+                    onClick={() => toggleTask(task.id)}
+                    className={`w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                      isCompleting
+                        ? "bg-success border-success"
+                        : task.priority === "high"
+                        ? "border-danger"
+                        : task.priority === "medium"
+                        ? "border-warning"
+                        : "border-success"
+                    }`}
+                  >
+                    {isCompleting && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                  <span className={`flex-1 text-sm ${isCompleting ? "line-through text-muted" : ""}`}>{task.title}</span>
+                  {!isCompleting && (
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="text-muted hover:text-danger text-xs p-1"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
 
           {completedTasks.length > 0 && (
             <details className="mt-4">

@@ -390,7 +390,7 @@ export default function Dashboard() {
               />
               <div className="flex-1 min-w-0">
                 <div className="text-sm">{task.title}</div>
-                <div className="text-[11px] text-muted capitalize">{task.domain}</div>
+                <div className="text-[11px] text-muted capitalize">{task.domain === "work" ? "chore" : task.domain}</div>
               </div>
               <span
                 className={`text-[10px] px-2 py-0.5 rounded-full ${
@@ -698,7 +698,7 @@ export default function Dashboard() {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm truncate">{task.title}</div>
-                  <div className="text-[11px] text-muted capitalize">{task.domain}</div>
+                  <div className="text-[11px] text-muted capitalize">{task.domain === "work" ? "chore" : task.domain}</div>
                 </div>
               </div>
             ))}

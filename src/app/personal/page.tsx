@@ -1,12 +1,16 @@
 "use client";
 
 import { DomainPage } from "@/components/DomainPage";
+import { Top3Suggestions } from "@/components/Top3Suggestions";
 import { useStore, today } from "@/lib/store";
+import { generatePersonalSuggestions } from "@/lib/suggestions";
+import { useMemo } from "react";
 import Link from "next/link";
 
 export default function PersonalPage() {
   const { data } = useStore();
   const todayStr = today();
+  const suggestions = useMemo(() => generatePersonalSuggestions(data, todayStr), [data, todayStr]);
 
   const todayEntries = [
     ...(data.journalLogs || []).filter((j) => j.date === todayStr),
@@ -22,6 +26,15 @@ export default function PersonalPage() {
         color="bg-personal"
         description="Health, mindset, habits, and self-care"
       />
+
+      <Top3Suggestions
+        title="Today's Top 3"
+        subtitle="Highest-impact personal growth moves based on your patterns."
+        suggestions={suggestions}
+        domain="personal"
+        journalCategory="reflection"
+      />
+
       <div className="max-w-lg mx-auto px-4 pb-6">
         <Link
           href="/journal"
