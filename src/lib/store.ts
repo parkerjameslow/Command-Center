@@ -75,6 +75,26 @@ export interface FinanceEntry {
   date: string;
 }
 
+export interface Person {
+  id: string;
+  name: string;
+  relationship: "wife" | "child" | "parent" | "grandparent" | "sibling" | "friend" | "other";
+  lastContact?: string; // YYYY-MM-DD
+  contactFrequency: number; // desired days between contact
+  notes?: string;
+  createdAt: string;
+}
+
+export interface Nudge {
+  id: string;
+  type: "relationship" | "chore" | "service" | "self" | "gratitude";
+  message: string;
+  personId?: string;
+  completed: boolean;
+  date: string;
+  createdAt: string;
+}
+
 export interface AppData {
   habits: Habit[];
   habitLogs: HabitLog[];
@@ -83,6 +103,8 @@ export interface AppData {
   journal: JournalEntry[];
   familyEvents: FamilyEvent[];
   finance: FinanceEntry[];
+  people: Person[];
+  nudges: Nudge[];
 }
 
 const DEFAULT_DATA: AppData = {
@@ -93,6 +115,8 @@ const DEFAULT_DATA: AppData = {
   journal: [],
   familyEvents: [],
   finance: [],
+  people: [],
+  nudges: [],
 };
 
 // Snake_case <-> camelCase helpers
@@ -146,7 +170,7 @@ function saveLocal(data: AppData) {
 
 // Supabase loader
 async function loadFromSupabase(): Promise<AppData> {
-  const [habits, habitLogs, tasks, goals, journal, familyEvents, finance] =
+  const [habits, habitLogs, tasks, goals, journal, familyEvents, finance, people, nudges] =
     await Promise.all([
       supabase.from("habits").select("*").order("created_at"),
       supabase.from("habit_logs").select("*").order("date", { ascending: false }),
@@ -155,6 +179,8 @@ async function loadFromSupabase(): Promise<AppData> {
       supabase.from("journal").select("*").order("date", { ascending: false }),
       supabase.from("family_events").select("*").order("date"),
       supabase.from("finance").select("*").order("date", { ascending: false }),
+      supabase.from("people").select("*").order("created_at"),
+      supabase.from("nudges").select("*").order("created_at"),
     ]);
 
   return {
@@ -165,6 +191,8 @@ async function loadFromSupabase(): Promise<AppData> {
     journal: (journal.data ?? []).map((r) => toCamel(r) as unknown as JournalEntry),
     familyEvents: (familyEvents.data ?? []).map((r) => toCamel(r) as unknown as FamilyEvent),
     finance: (finance.data ?? []).map((r) => toCamel(r) as unknown as FinanceEntry),
+    people: (people.data ?? []).map((r) => toCamel(r) as unknown as Person),
+    nudges: (nudges.data ?? []).map((r) => toCamel(r) as unknown as Nudge),
   };
 }
 
@@ -273,6 +301,36 @@ async function syncToSupabase(prev: AppData, next: AppData) {
   }
   for (const f of deletedFinance) {
     promises.push(run(supabase.from("finance").delete().eq("id", f.id)));
+  }
+
+  // People
+  const newPeople = next.people.filter((p) => !prev.people.find((pp) => pp.id === p.id));
+  const deletedPeople = prev.people.filter((p) => !next.people.find((np) => np.id === p.id));
+  const updatedPeople = next.people.filter((p) => {
+    const old = prev.people.find((pp) => pp.id === p.id);
+    return old && JSON.stringify(old) !== JSON.stringify(p);
+  });
+  for (const p of newPeople) {
+    promises.push(run(supabase.from("people").insert(forInsert(p as unknown as Record<string, unknown>))));
+  }
+  for (const p of deletedPeople) {
+    promises.push(run(supabase.from("people").delete().eq("id", p.id)));
+  }
+  for (const p of updatedPeople) {
+    promises.push(run(supabase.from("people").update({ last_contact: p.lastContact, notes: p.notes, contact_frequency: p.contactFrequency }).eq("id", p.id)));
+  }
+
+  // Nudges
+  const newNudges = next.nudges.filter((n) => !prev.nudges.find((pn) => pn.id === n.id));
+  const updatedNudges = next.nudges.filter((n) => {
+    const old = prev.nudges.find((pn) => pn.id === n.id);
+    return old && old.completed !== n.completed;
+  });
+  for (const n of newNudges) {
+    promises.push(run(supabase.from("nudges").insert(forInsert(n as unknown as Record<string, unknown>))));
+  }
+  for (const n of updatedNudges) {
+    promises.push(run(supabase.from("nudges").update({ completed: n.completed }).eq("id", n.id)));
   }
 
   await Promise.all(promises);

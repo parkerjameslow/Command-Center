@@ -14,6 +14,8 @@ export default function CheckInPage() {
   const [gratitude, setGratitude] = useState(["", "", ""]);
   const [topPriorities, setTopPriorities] = useState(["", "", ""]);
   const [intention, setIntention] = useState("");
+  const [whoToConnect, setWhoToConnect] = useState("");
+  const [actOfService, setActOfService] = useState("");
 
   const existingEntry = data.journal.find(
     (j) => j.date === todayStr && j.type === "morning"
@@ -122,11 +124,37 @@ export default function CheckInPage() {
       ))}
     </div>,
 
-    // Step 4: Intention
+    // Step 4: Who to connect with
+    <div key="connect" className="space-y-4">
+      <h2 className="text-lg font-semibold">Who needs you today?</h2>
+      <p className="text-sm text-muted">Think about your wife, kids, parents, a friend. Who could use a call, a text, or your presence?</p>
+      <input
+        type="text"
+        placeholder="Who will you reach out to today?"
+        value={whoToConnect}
+        onChange={(e) => setWhoToConnect(e.target.value)}
+        className="w-full bg-card border border-card-border rounded-xl px-4 py-3 text-sm outline-none focus:border-accent"
+      />
+    </div>,
+
+    // Step 5: Act of service
+    <div key="service" className="space-y-4">
+      <h2 className="text-lg font-semibold">One thing for someone else</h2>
+      <p className="text-sm text-muted">What&apos;s one kind, helpful, or thoughtful thing you can do for someone today? A chore, a surprise, a gesture.</p>
+      <input
+        type="text"
+        placeholder="e.g. Fix the kitchen drawer, bring her coffee..."
+        value={actOfService}
+        onChange={(e) => setActOfService(e.target.value)}
+        className="w-full bg-card border border-card-border rounded-xl px-4 py-3 text-sm outline-none focus:border-accent"
+      />
+    </div>,
+
+    // Step 6: Intention
     <div key="intention" className="space-y-4">
       <h2 className="text-lg font-semibold">Today&apos;s intention</h2>
       <textarea
-        placeholder="What do you want to focus on today?"
+        placeholder="What kind of man do you want to be today?"
         value={intention}
         onChange={(e) => setIntention(e.target.value)}
         rows={4}
@@ -184,6 +212,8 @@ export default function CheckInPage() {
           energy,
           gratitude: gratitude.filter(Boolean),
           priorities: topPriorities.filter(Boolean),
+          whoToConnect,
+          actOfService,
           intention,
         }),
       });

@@ -1,8 +1,10 @@
 "use client";
 
 import { useStore, today, getStreak } from "@/lib/store";
+import { generateNudges } from "@/lib/nudgeEngine";
+import { NudgeCards } from "@/components/NudgeCards";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 const DOMAINS = [
   { key: "personal", label: "Personal", color: "bg-personal", href: "/personal" },
@@ -37,6 +39,25 @@ export default function Dashboard() {
   // Greeting
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+  // Smart nudges
+  const nudges = useMemo(() => generateNudges(data, todayStr), [data, todayStr]);
+
+  function completeNudge(nudgeId: string) {
+    update((d) => ({
+      ...d,
+      nudges: [...d.nudges, { id: nudgeId, type: "self" as const, message: "", completed: true, date: todayStr, createdAt: new Date().toISOString() }],
+    }));
+  }
+
+  function markPersonContact(personId: string) {
+    update((d) => ({
+      ...d,
+      people: d.people.map((p) =>
+        p.id === personId ? { ...p, lastContact: todayStr } : p
+      ),
+    }));
+  }
 
   function toggleHabit(habitId: string) {
     const existing = todayLogs.find((l) => l.habitId === habitId);
@@ -180,6 +201,14 @@ export default function Dashboard() {
           <div className="text-muted text-sm mt-1">Evening reflection</div>
         </Link>
       )}
+
+      {/* Smart Nudges */}
+      <NudgeCards
+        nudges={nudges}
+        people={data.people}
+        onComplete={completeNudge}
+        onContactPerson={markPersonContact}
+      />
 
       {/* Today's Habits */}
       {dailyHabits.length > 0 && (
