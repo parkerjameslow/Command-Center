@@ -13,7 +13,7 @@ export function BottomNav() {
     { href: "/", label: "Home", icon: HomeIcon, badge: 0 },
     { href: "/personal", label: "Personal", icon: PersonalIcon, badge: 0 },
     { href: "/family", label: "Family", icon: FamilyIcon, badge: peopleCount },
-    { href: "/work", label: "Work", icon: WorkIcon, badge: 0 },
+    { href: "/chores", label: "Chores", icon: ChoresIcon, badge: 0 },
     { href: "/growth", label: "Growth", icon: GrowthIcon, badge: 0 },
   ];
 
@@ -80,11 +80,11 @@ function FamilyIcon({ active }: { active: boolean }) {
   );
 }
 
-function WorkIcon({ active }: { active: boolean }) {
+function ChoresIcon({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <path d="M9 22V12h6v10" />
     </svg>
   );
 }

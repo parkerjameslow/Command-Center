@@ -545,25 +545,25 @@ export default function Dashboard() {
             })()}
           </Link>
 
-          {/* Work Card */}
-          <Link href="/work" className="bg-card border border-card-border rounded-xl p-4 hover:border-work/30 transition-colors">
+          {/* Chores Card */}
+          <Link href="/chores" className="bg-card border border-card-border rounded-xl p-4 hover:border-work/30 transition-colors">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2.5 h-2.5 rounded-full bg-work" />
-              <span className="text-sm font-medium">Work</span>
+              <span className="text-sm font-medium">Chores</span>
             </div>
             {(() => {
-              const workTasks = pendingTasks.filter((t) => t.domain === "work");
-              const workHigh = workTasks.filter((t) => t.priority === "high").length;
-              const workCompleted = data.tasks.filter((t) => t.domain === "work" && t.completed).length;
-              const workGoals = data.goals.filter((g) => g.domain === "work");
-              const goalProgress = workGoals.length > 0
-                ? Math.round(workGoals.reduce((sum, g) => sum + (g.targetValue > 0 ? g.currentValue / g.targetValue : 0), 0) / workGoals.length * 100)
-                : null;
+              const choreTasks = pendingTasks.filter((t) => t.domain === "work");
+              const choresDone = data.tasks.filter((t) => t.domain === "work" && t.completed).length;
+              const choreNudgesDone = data.nudges.filter((n) => n.type === "chore" && n.completed && daysBetween(n.date, todayStr) <= 7).length;
+              const serviceNudgesDone = data.nudges.filter((n) => n.type === "service" && n.completed && daysBetween(n.date, todayStr) <= 7).length;
+              const totalNudgesThisWeek = choreNudgesDone + serviceNudgesDone;
+              const choreJournalLogs = (data.journalLogs || []).filter((j) => (j.category === "service" || j.nudgeType === "chore") && daysBetween(j.date, todayStr) <= 7).length;
               return (
                 <div className="text-xs text-muted space-y-1">
-                  <div><span className="text-foreground font-medium">{workTasks.length}</span> open tasks{workHigh > 0 && <span className="text-danger"> ({workHigh} urgent)</span>}</div>
-                  <div>{workCompleted} completed total</div>
-                  {goalProgress !== null && <div>Goal progress: <span className="text-foreground font-medium">{goalProgress}%</span></div>}
+                  <div><span className="text-foreground font-medium">{choreTasks.length}</span> open chores</div>
+                  <div>{choresDone} completed</div>
+                  {totalNudgesThisWeek > 0 && <div><span className="text-success font-medium">{totalNudgesThisWeek}</span> nudges done this week</div>}
+                  {choreJournalLogs > 0 && <div>{choreJournalLogs} logged this week</div>}
                 </div>
               );
             })()}
@@ -576,20 +576,43 @@ export default function Dashboard() {
               <span className="text-sm font-medium">Growth</span>
             </div>
             {(() => {
-              const growthGoals = data.goals.filter((g) => g.domain === "growth");
-              const growthProgress = growthGoals.length > 0
-                ? Math.round(growthGoals.reduce((sum, g) => sum + (g.targetValue > 0 ? g.currentValue / g.targetValue : 0), 0) / growthGoals.length * 100)
+              // Connection score: % of people you're current with
+              const totalPeople = data.people.length;
+              const currentPeople = data.people.filter((p) => {
+                if (!p.lastContact) return false;
+                return daysBetween(p.lastContact, todayStr) < p.contactFrequency;
+              }).length;
+              const connectionScore = totalPeople > 0 ? Math.round((currentPeople / totalPeople) * 100) : null;
+
+              // Service score: nudges completed this week
+              const thisWeekNudges = data.nudges.filter((n) => n.completed && daysBetween(n.date, todayStr) <= 7).length;
+
+              // Habit consistency (7-day)
+              const last7Habits = data.habitLogs.filter((l) => l.completed && daysBetween(l.date, todayStr) <= 7).length;
+              const possibleHabits = dailyHabits.length * 7;
+              const habitScore = possibleHabits > 0 ? Math.round((last7Habits / possibleHabits) * 100) : null;
+
+              // Mood trend
+              const recentMoods = data.journal.filter((j) => j.mood && daysBetween(j.date, todayStr) <= 7).map((j) => j.mood!);
+              const olderMoods = data.journal.filter((j) => j.mood && daysBetween(j.date, todayStr) > 7 && daysBetween(j.date, todayStr) <= 14).map((j) => j.mood!);
+              const recentAvg = recentMoods.length > 0 ? recentMoods.reduce((a, b) => a + b, 0) / recentMoods.length : null;
+              const olderAvg = olderMoods.length > 0 ? olderMoods.reduce((a, b) => a + b, 0) / olderMoods.length : null;
+              const moodTrend = recentAvg !== null && olderAvg !== null
+                ? recentAvg > olderAvg + 0.3 ? "up" : recentAvg < olderAvg - 0.3 ? "down" : "steady"
                 : null;
-              const growthHabits = dailyHabits.filter((h) => h.domain === "growth");
-              const growthDone = growthHabits.filter((h) => todayLogs.find((l) => l.habitId === h.id && l.completed)).length;
-              const totalJournal = (data.journalLogs || []).length;
-              const lessons = (data.journalLogs || []).filter((j) => j.category === "lesson").length;
+
               return (
                 <div className="text-xs text-muted space-y-1">
-                  {growthGoals.length > 0 && <div>Goal progress: <span className="text-foreground font-medium">{growthProgress}%</span></div>}
-                  {growthHabits.length > 0 && <div>{growthDone}/{growthHabits.length} habits today</div>}
-                  <div>{lessons} lessons logged</div>
-                  <div>{totalJournal} total reflections</div>
+                  {connectionScore !== null && (
+                    <div>Relationships: <span className={`font-medium ${connectionScore >= 80 ? "text-success" : connectionScore >= 50 ? "text-warning" : "text-danger"}`}>{connectionScore}%</span> current</div>
+                  )}
+                  {habitScore !== null && (
+                    <div>Habits: <span className={`font-medium ${habitScore >= 80 ? "text-success" : habitScore >= 50 ? "text-warning" : "text-danger"}`}>{habitScore}%</span> this week</div>
+                  )}
+                  <div>{thisWeekNudges} nudges acted on</div>
+                  {moodTrend && (
+                    <div>Mood: <span className={`font-medium ${moodTrend === "up" ? "text-success" : moodTrend === "down" ? "text-danger" : "text-foreground"}`}>{moodTrend === "up" ? "↑ improving" : moodTrend === "down" ? "↓ declining" : "→ steady"}</span></div>
+                  )}
                 </div>
               );
             })()}
