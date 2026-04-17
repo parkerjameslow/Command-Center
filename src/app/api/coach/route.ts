@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 
 const SYSTEM_PROMPT = `You are Parker's personal life coach inside his Command Center app. You help him stay organized and balanced across 5 life domains: Personal (health, mindset, habits), Family (kids, wife, activities), Work (projects, priorities), Growth (learning, goals), and Balance (fun, rest, recreation).
 
@@ -26,6 +25,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    const Anthropic = (await import("@anthropic-ai/sdk")).default;
     const client = new Anthropic({ apiKey });
 
     let userMessage = "";

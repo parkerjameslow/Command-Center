@@ -105,9 +105,10 @@ function toCamel(row: Record<string, unknown>): Record<string, unknown> {
   return out;
 }
 
-function toSnake(obj: Record<string, unknown>): Record<string, unknown> {
+function toSnake(obj: Record<string, unknown>, excludeKeys: string[] = []): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(obj)) {
+    if (excludeKeys.includes(k)) continue;
     if (k === "id") { out[k] = v; continue; }
     const snake = k.replace(/[A-Z]/g, (c) => "_" + c.toLowerCase());
     out[snake] = v;
@@ -180,6 +181,13 @@ async function syncToSupabase(prev: AppData, next: AppData) {
 
   const promises: Promise<unknown>[] = [];
 
+  // Helper: prepare insert data (exclude client id, let Supabase generate UUID)
+  const forInsert = (obj: Record<string, unknown>) => {
+    const snaked = toSnake(obj, ["id", "createdAt"]);
+    snaked.user_id = userId;
+    return snaked;
+  };
+
   // Tasks
   const newTasks = next.tasks.filter((t) => !prev.tasks.find((p) => p.id === t.id));
   const deletedTasks = prev.tasks.filter((t) => !next.tasks.find((n) => n.id === t.id));
@@ -188,31 +196,20 @@ async function syncToSupabase(prev: AppData, next: AppData) {
     return old && JSON.stringify(old) !== JSON.stringify(t);
   });
   for (const t of newTasks) {
-    promises.push(run(
-      supabase.from("tasks").insert({
-        ...toSnake(t as unknown as Record<string, unknown>),
-        user_id: userId,
-      })
-    ));
+    promises.push(run(supabase.from("tasks").insert(forInsert(t as unknown as Record<string, unknown>))));
   }
   for (const t of deletedTasks) {
     promises.push(run(supabase.from("tasks").delete().eq("id", t.id)));
   }
   for (const t of updatedTasks) {
-    const { id, ...rest } = toSnake(t as unknown as Record<string, unknown>);
-    promises.push(run(supabase.from("tasks").update(rest).eq("id", id)));
+    promises.push(run(supabase.from("tasks").update({ completed: t.completed, title: t.title, priority: t.priority }).eq("id", t.id)));
   }
 
   // Habits
   const newHabits = next.habits.filter((h) => !prev.habits.find((p) => p.id === h.id));
   const deletedHabits = prev.habits.filter((h) => !next.habits.find((n) => n.id === h.id));
   for (const h of newHabits) {
-    promises.push(run(
-      supabase.from("habits").insert({
-        ...toSnake(h as unknown as Record<string, unknown>),
-        user_id: userId,
-      })
-    ));
+    promises.push(run(supabase.from("habits").insert(forInsert(h as unknown as Record<string, unknown>))));
   }
   for (const h of deletedHabits) {
     promises.push(run(supabase.from("habits").delete().eq("id", h.id)));
@@ -227,23 +224,12 @@ async function syncToSupabase(prev: AppData, next: AppData) {
     return old && old.completed !== l.completed;
   });
   for (const l of newLogs) {
-    promises.push(run(
-      supabase.from("habit_logs").insert({
-        habit_id: l.habitId,
-        date: l.date,
-        completed: l.completed,
-        user_id: userId,
-      })
-    ));
+    promises.push(run(supabase.from("habit_logs").insert({
+      habit_id: l.habitId, date: l.date, completed: l.completed, user_id: userId,
+    })));
   }
   for (const l of updatedLogs) {
-    promises.push(run(
-      supabase
-        .from("habit_logs")
-        .update({ completed: l.completed })
-        .eq("habit_id", l.habitId)
-        .eq("date", l.date)
-    ));
+    promises.push(run(supabase.from("habit_logs").update({ completed: l.completed }).eq("habit_id", l.habitId).eq("date", l.date)));
   }
 
   // Goals
@@ -254,50 +240,26 @@ async function syncToSupabase(prev: AppData, next: AppData) {
     return old && JSON.stringify(old) !== JSON.stringify(g);
   });
   for (const g of newGoals) {
-    promises.push(run(
-      supabase.from("goals").insert({
-        ...toSnake(g as unknown as Record<string, unknown>),
-        user_id: userId,
-      })
-    ));
+    promises.push(run(supabase.from("goals").insert(forInsert(g as unknown as Record<string, unknown>))));
   }
   for (const g of deletedGoals) {
     promises.push(run(supabase.from("goals").delete().eq("id", g.id)));
   }
   for (const g of updatedGoals) {
-    const { id, ...rest } = toSnake(g as unknown as Record<string, unknown>);
-    promises.push(run(supabase.from("goals").update(rest).eq("id", id)));
+    promises.push(run(supabase.from("goals").update({ current_value: g.currentValue, target_value: g.targetValue, title: g.title }).eq("id", g.id)));
   }
 
   // Journal
   const newJournal = next.journal.filter((j) => !prev.journal.find((p) => p.id === j.id));
-  const updatedJournal = next.journal.filter((j) => {
-    const old = prev.journal.find((p) => p.id === j.id);
-    return old && JSON.stringify(old) !== JSON.stringify(j);
-  });
   for (const j of newJournal) {
-    promises.push(run(
-      supabase.from("journal").insert({
-        ...toSnake(j as unknown as Record<string, unknown>),
-        user_id: userId,
-      })
-    ));
-  }
-  for (const j of updatedJournal) {
-    const { id, ...rest } = toSnake(j as unknown as Record<string, unknown>);
-    promises.push(run(supabase.from("journal").update(rest).eq("id", id)));
+    promises.push(run(supabase.from("journal").insert(forInsert(j as unknown as Record<string, unknown>))));
   }
 
   // Family Events
   const newEvents = next.familyEvents.filter((e) => !prev.familyEvents.find((p) => p.id === e.id));
   const deletedEvents = prev.familyEvents.filter((e) => !next.familyEvents.find((n) => n.id === e.id));
   for (const e of newEvents) {
-    promises.push(run(
-      supabase.from("family_events").insert({
-        ...toSnake(e as unknown as Record<string, unknown>),
-        user_id: userId,
-      })
-    ));
+    promises.push(run(supabase.from("family_events").insert(forInsert(e as unknown as Record<string, unknown>))));
   }
   for (const e of deletedEvents) {
     promises.push(run(supabase.from("family_events").delete().eq("id", e.id)));
@@ -307,12 +269,7 @@ async function syncToSupabase(prev: AppData, next: AppData) {
   const newFinance = next.finance.filter((f) => !prev.finance.find((p) => p.id === f.id));
   const deletedFinance = prev.finance.filter((f) => !next.finance.find((n) => n.id === f.id));
   for (const f of newFinance) {
-    promises.push(run(
-      supabase.from("finance").insert({
-        ...toSnake(f as unknown as Record<string, unknown>),
-        user_id: userId,
-      })
-    ));
+    promises.push(run(supabase.from("finance").insert(forInsert(f as unknown as Record<string, unknown>))));
   }
   for (const f of deletedFinance) {
     promises.push(run(supabase.from("finance").delete().eq("id", f.id)));
