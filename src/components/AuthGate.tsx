@@ -10,6 +10,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState("");
 
   if (loading) {
     return (
@@ -25,15 +26,30 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return; // prevent double-tap
     setError("");
+    setSuccess("");
     setSubmitting(true);
 
     const { error } = isSignUp
       ? await signUp(email, password)
       : await signIn(email, password);
 
-    if (error) setError(error);
-    setSubmitting(false);
+    if (error) {
+      setError(error);
+      setSubmitting(false);
+    } else if (isSignUp) {
+      setSuccess("Account created! Signing you in...");
+      // Auto sign-in after sign-up
+      const signInResult = await signIn(email, password);
+      if (signInResult.error) {
+        setError(signInResult.error);
+        setSuccess("");
+      }
+      setSubmitting(false);
+    } else {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -55,7 +71,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           />
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Password (6+ characters)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -66,18 +82,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           {error && (
             <div className="text-danger text-sm text-center">{error}</div>
           )}
+          {success && (
+            <div className="text-success text-sm text-center">{success}</div>
+          )}
 
           <button
             type="submit"
             disabled={submitting}
             className="w-full py-3 bg-accent text-white rounded-xl text-sm font-medium disabled:opacity-50"
           >
-            {submitting ? "..." : isSignUp ? "Create Account" : "Sign In"}
+            {submitting ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
           </button>
         </form>
 
         <button
-          onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
+          onClick={() => { setIsSignUp(!isSignUp); setError(""); setSuccess(""); }}
           className="w-full text-center text-sm text-muted"
         >
           {isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up"}
