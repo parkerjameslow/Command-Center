@@ -3,6 +3,7 @@
 import { useStore, today, getStreak } from "@/lib/store";
 import { generateNudges } from "@/lib/nudgeEngine";
 import { NudgeCards } from "@/components/NudgeCards";
+import { PeoplePulse } from "@/components/PeoplePulse";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 
@@ -201,6 +202,13 @@ export default function Dashboard() {
           <div className="text-muted text-sm mt-1">Evening reflection</div>
         </Link>
       )}
+
+      {/* People Pulse */}
+      <PeoplePulse
+        data={data}
+        todayStr={todayStr}
+        onConnect={markPersonContact}
+      />
 
       {/* Smart Nudges */}
       <NudgeCards
