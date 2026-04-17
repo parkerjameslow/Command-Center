@@ -8,7 +8,7 @@ const tabs = [
   { href: "/personal", label: "Personal", icon: PersonalIcon },
   { href: "/family", label: "Family", icon: FamilyIcon },
   { href: "/work", label: "Work", icon: WorkIcon },
-  { href: "/people", label: "People", icon: PeopleIcon },
+  { href: "/growth", label: "Growth", icon: GrowthIcon },
 ];
 
 export function BottomNav() {
@@ -79,10 +79,10 @@ function WorkIcon({ active }: { active: boolean }) {
   );
 }
 
-function PeopleIcon({ active }: { active: boolean }) {
+function GrowthIcon({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
     </svg>
   );
 }
