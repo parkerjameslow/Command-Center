@@ -402,17 +402,19 @@ export function useStore() {
 
   const update = useCallback(
     (updater: (prev: AppData) => AppData) => {
-      setData((prev) => {
-        const next = updater(prev);
-        if (useSupabase) {
-          // Sync diff to Supabase in background
-          syncToSupabase(prev, next).catch(console.error);
-        } else {
-          saveLocal(next);
-        }
-        prevRef.current = next;
-        return next;
-      });
+      // Compute next state from the ref (most recent committed state),
+      // NOT inside setState — because React Strict Mode calls the
+      // updater function twice, which would cause double-inserts to Supabase.
+      const prev = prevRef.current;
+      const next = updater(prev);
+      prevRef.current = next;
+      setData(next);
+
+      if (useSupabase) {
+        syncToSupabase(prev, next).catch(console.error);
+      } else {
+        saveLocal(next);
+      }
     },
     [useSupabase]
   );
