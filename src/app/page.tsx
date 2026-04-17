@@ -8,7 +8,6 @@ const DOMAINS = [
   { key: "family", label: "Family", color: "bg-family", href: "/family" },
   { key: "work", label: "Work", color: "bg-work", href: "/work" },
   { key: "growth", label: "Growth", color: "bg-growth", href: "/growth" },
-  { key: "balance", label: "Balance", color: "bg-balance", href: "/balance" },
 ] as const;
 
 export default function Dashboard() {
