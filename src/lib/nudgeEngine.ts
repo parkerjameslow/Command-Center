@@ -3,8 +3,8 @@ import type { AppData, Nudge, Person } from "./store";
 type TimePhase = "morning" | "midday" | "evening";
 
 function getPhase(hour: number): TimePhase {
-  if (hour < 12) return "morning";
-  if (hour < 17) return "midday";
+  if (hour < 13) return "morning";
+  if (hour < 18) return "midday";
   return "evening";
 }
 

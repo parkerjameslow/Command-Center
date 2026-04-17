@@ -461,6 +461,15 @@ export default function Dashboard() {
           <div className="text-muted text-sm mt-1">Morning check-in</div>
         </Link>
       )}
+      {todayJournal && hour >= 13 && hour < 18 && !(data.journalLogs || []).find((j) => j.date === todayStr && j.nudgeType === "midday-checkin") && (
+        <Link
+          href="/midday"
+          className="block bg-work/10 border border-work/20 rounded-xl p-4 text-center"
+        >
+          <div className="text-work font-semibold">Midday check-in</div>
+          <div className="text-muted text-sm mt-1">How&apos;s your day going? Pulse check and refocus.</div>
+        </Link>
+      )}
       {todayJournal && !eveningJournal && hour >= 18 && (
         <Link
           href="/reflect"
@@ -519,7 +528,7 @@ export default function Dashboard() {
         nudges={nudges}
         people={data.people}
         onNudgeTap={setActiveNudge}
-        phase={hour < 12 ? "morning" : hour < 17 ? "midday" : "evening"}
+        phase={hour < 12 ? "morning" : hour < 13 ? "morning" : hour < 18 ? "midday" : "evening"}
       />
 
       {/* Nudge Action Modal */}
