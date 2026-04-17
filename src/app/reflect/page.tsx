@@ -153,23 +153,42 @@ export default function ReflectPage() {
       </div>
 
       {/* Day summary */}
-      <div className="bg-card border border-card-border rounded-xl p-4 space-y-2">
-        <div className="text-xs text-muted font-semibold uppercase">Today&apos;s Stats</div>
-        <div className="flex justify-between text-sm">
-          <span>Habits completed</span>
-          <span className="font-medium">{habitsCompleted}/{dailyHabits.length}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span>Tasks done</span>
-          <span className="font-medium">{tasksCompletedToday}</span>
-        </div>
-        {morningEntry && (
-          <div className="flex justify-between text-sm">
-            <span>Morning mood</span>
-            <span className="font-medium">{morningEntry.mood}/5</span>
+      {(() => {
+        const nudgesDone = data.nudges.filter((n) => n.date === todayStr && n.completed).length;
+        const connectionsToday = data.people.filter((p) => p.lastContact === todayStr).length;
+        const journalEntries = (data.journalLogs || []).filter((j) => j.date === todayStr).length;
+        return (
+          <div className="bg-card border border-card-border rounded-xl p-4 space-y-2">
+            <div className="text-xs text-muted font-semibold uppercase">Today&apos;s Summary</div>
+            <div className="flex justify-between text-sm">
+              <span>Habits completed</span>
+              <span className="font-medium">{habitsCompleted}/{dailyHabits.length}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Tasks done</span>
+              <span className="font-medium">{tasksCompletedToday}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Nudges acted on</span>
+              <span className="font-medium">{nudgesDone}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>People connected with</span>
+              <span className="font-medium">{connectionsToday}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Journal entries</span>
+              <span className="font-medium">{journalEntries}</span>
+            </div>
+            {morningEntry && (
+              <div className="flex justify-between text-sm">
+                <span>Morning mood</span>
+                <span className="font-medium">{morningEntry.mood}/5</span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
     </div>,
 
     // Step 2: Wins

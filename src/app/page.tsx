@@ -17,7 +17,7 @@ const DOMAINS = [
 export default function Dashboard() {
   const { data, loaded, update } = useStore();
   const todayStr = today();
-  const [view, setView] = useState<"dashboard" | "high" | "all" | "people" | "goals">("dashboard");
+  const [view, setView] = useState<"dashboard" | "high" | "all" | "people" | "goals" | "habits">("dashboard");
   const [activeNudge, setActiveNudge] = useState<Nudge | null>(null);
 
   // All hooks must be before any early return
@@ -200,6 +200,88 @@ export default function Dashboard() {
   }
 
   // Goals drill-down
+  // Habits drill-down
+  if (view === "habits") {
+    const domains = ["personal", "family", "work", "growth"] as const;
+    const domainLabels: Record<string, string> = { personal: "Personal", family: "Family", work: "Chores", growth: "Growth" };
+
+    return (
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setView("dashboard")} className="text-muted hover:text-foreground">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <h1 className="text-xl font-bold">Today&apos;s Habits</h1>
+          <span className="text-sm text-muted">({completedToday}/{dailyHabits.length})</span>
+        </div>
+
+        {/* Progress bar */}
+        <div className="bg-card border border-card-border rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Daily Progress</span>
+            <span className={`text-lg font-bold ${habitProgress >= 1 ? "text-success" : habitProgress >= 0.5 ? "text-warning" : "text-danger"}`}>
+              {Math.round(habitProgress * 100)}%
+            </span>
+          </div>
+          <div className="h-3 bg-card-border rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${habitProgress >= 1 ? "bg-success" : habitProgress >= 0.5 ? "bg-warning" : "bg-danger"}`}
+              style={{ width: `${Math.min(100, habitProgress * 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {dailyHabits.length === 0 && (
+          <div className="text-center py-12 text-muted text-sm">No daily habits yet. Add one from any domain page.</div>
+        )}
+
+        {domains.map((domain) => {
+          const domainHabits = dailyHabits.filter((h) => h.domain === domain);
+          if (domainHabits.length === 0) return null;
+          return (
+            <div key={domain}>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">{domainLabels[domain]}</h2>
+              <div className="space-y-2">
+                {domainHabits.map((habit) => {
+                  const log = todayLogs.find((l) => l.habitId === habit.id);
+                  const done = log?.completed ?? false;
+                  const streak = getStreak(habit.id, data.habitLogs);
+                  return (
+                    <button
+                      key={habit.id}
+                      onClick={() => toggleHabit(habit.id)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                        done ? "bg-success/10 border-success/30" : "bg-card border-card-border"
+                      }`}
+                    >
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        done ? "bg-success border-success" : "border-muted"
+                      }`}>
+                        {done && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className={`flex-1 text-left text-sm ${done ? "line-through text-muted" : ""}`}>
+                        {habit.name}
+                      </span>
+                      {streak > 0 && (
+                        <span className="text-xs text-warning font-medium">{streak}d</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   if (view === "goals") {
     const allGoals = data.goals;
     const domains = ["personal", "family", "work", "growth"] as const;
@@ -339,10 +421,13 @@ export default function Dashboard() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-4 gap-2">
-        <div className="bg-card border border-card-border rounded-xl p-2.5 text-center">
-          <div className="text-xl font-bold text-accent">{Math.round(habitProgress * 100)}%</div>
+        <button
+          onClick={() => setView("habits")}
+          className="bg-card border border-card-border rounded-xl p-2.5 text-center hover:border-accent/30 transition-colors"
+        >
+          <div className="text-xl font-bold text-accent">{completedToday}/{dailyHabits.length}</div>
           <div className="text-[10px] text-muted mt-0.5">Habits</div>
-        </div>
+        </button>
         <button
           onClick={() => setView("high")}
           className="bg-card border border-card-border rounded-xl p-2.5 text-center hover:border-danger/30 transition-colors"
@@ -376,13 +461,13 @@ export default function Dashboard() {
           <div className="text-muted text-sm mt-1">Morning check-in</div>
         </Link>
       )}
-      {todayJournal && !eveningJournal && (
+      {todayJournal && !eveningJournal && hour >= 18 && (
         <Link
           href="/reflect"
           className="block bg-personal/10 border border-personal/20 rounded-xl p-4 text-center"
         >
           <div className="text-personal font-semibold">End of day check-in</div>
-          <div className="text-muted text-sm mt-1">Reflect, log wins, and plan tomorrow</div>
+          <div className="text-muted text-sm mt-1">Reflect on today&apos;s nudges, wins, and what to improve</div>
         </Link>
       )}
 
@@ -445,52 +530,6 @@ export default function Dashboard() {
           onSave={handleNudgeSave}
           onClose={() => setActiveNudge(null)}
         />
-      )}
-
-      {/* Today's Habits */}
-      {dailyHabits.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Today&apos;s Habits</h2>
-            <span className="text-xs text-muted">{completedToday}/{dailyHabits.length}</span>
-          </div>
-          <div className="space-y-2">
-            {dailyHabits.map((habit) => {
-              const log = todayLogs.find((l) => l.habitId === habit.id);
-              const done = log?.completed ?? false;
-              const streak = getStreak(habit.id, data.habitLogs);
-              return (
-                <button
-                  key={habit.id}
-                  onClick={() => toggleHabit(habit.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                    done
-                      ? "bg-success/10 border-success/30"
-                      : "bg-card border-card-border"
-                  }`}
-                >
-                  <div
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                      done ? "bg-success border-success" : "border-muted"
-                    }`}
-                  >
-                    {done && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                  </div>
-                  <span className={`flex-1 text-left text-sm ${done ? "line-through text-muted" : ""}`}>
-                    {habit.name}
-                  </span>
-                  {streak > 0 && (
-                    <span className="text-xs text-warning font-medium">{streak}d</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </section>
       )}
 
       {/* Domain Overview — Rich Data Cards */}
