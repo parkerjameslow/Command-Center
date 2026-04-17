@@ -27,8 +27,14 @@ export default function Dashboard() {
     return <div className="flex items-center justify-center h-screen text-muted">Loading...</div>;
   }
 
-  // Today's habits
-  const dailyHabits = data.habits.filter((h) => h.frequency === "daily");
+  // Today's habits (deduplicate by name in case of sync issues)
+  const seenHabitNames = new Set<string>();
+  const dailyHabits = data.habits.filter((h) => {
+    if (h.frequency !== "daily") return false;
+    if (seenHabitNames.has(h.name)) return false;
+    seenHabitNames.add(h.name);
+    return true;
+  });
   const todayLogs = data.habitLogs.filter((l) => l.date === todayStr);
   const completedToday = todayLogs.filter((l) => l.completed).length;
   const habitProgress = dailyHabits.length > 0 ? completedToday / dailyHabits.length : 0;
