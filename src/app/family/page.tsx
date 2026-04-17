@@ -3,6 +3,7 @@
 import { DomainPage } from "@/components/DomainPage";
 import { useStore, uid } from "@/lib/store";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function FamilyPage() {
   return (
@@ -13,6 +14,21 @@ export default function FamilyPage() {
         color="bg-family"
         description="Kids, wife, activities, and responsibilities"
       />
+      <div className="max-w-lg mx-auto px-4 pb-4">
+        <Link
+          href="/people"
+          className="flex items-center gap-3 bg-card border border-card-border rounded-xl p-4 hover:border-family/30 transition-colors"
+        >
+          <span className="text-xl">❤️</span>
+          <div>
+            <div className="text-sm font-medium">My People</div>
+            <div className="text-xs text-muted">Track relationships and stay connected</div>
+          </div>
+          <svg className="ml-auto text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
+      </div>
       <FamilyCalendar />
     </div>
   );

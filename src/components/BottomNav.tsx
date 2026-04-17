@@ -11,8 +11,8 @@ export function BottomNav() {
 
   const tabs = [
     { href: "/", label: "Home", icon: HomeIcon, badge: 0 },
-    { href: "/personal", label: "Personal", icon: PersonalIcon, badge: peopleCount },
-    { href: "/family", label: "Family", icon: FamilyIcon, badge: 0 },
+    { href: "/personal", label: "Personal", icon: PersonalIcon, badge: 0 },
+    { href: "/family", label: "Family", icon: FamilyIcon, badge: peopleCount },
     { href: "/work", label: "Work", icon: WorkIcon, badge: 0 },
     { href: "/growth", label: "Growth", icon: GrowthIcon, badge: 0 },
   ];
