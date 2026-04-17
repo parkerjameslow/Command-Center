@@ -2,13 +2,16 @@
 
 import { DomainPage } from "@/components/DomainPage";
 import { useStore, uid, today, type AppData } from "@/lib/store";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 export default function ChoresPage() {
   const { data, loaded, update } = useStore();
   const todayStr = today();
+  const [addModal, setAddModal] = useState<{ title: string } | null>(null);
+  const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("");
 
-  const suggestedChores = useMemo(() => generateSmartChores(data, todayStr), [data, todayStr]);
+  const suggestedChores = useMemo(() => generateHouseChores(data, todayStr), [data, todayStr]);
 
   if (!loaded) return <div className="flex items-center justify-center h-screen text-muted">Loading...</div>;
 
@@ -16,21 +19,6 @@ export default function ChoresPage() {
   const completed = choreTasks.filter((t) => t.completed).length;
   const pending = choreTasks.filter((t) => !t.completed).length;
   const choreNudgesDone = data.nudges.filter((n) => (n.type === "chore" || n.type === "service") && n.completed).length;
-  const choreJournalLogs = (data.journalLogs || []).filter((j) => j.category === "service" || j.nudgeType === "chore").length;
-
-  function addChoreAsTask(title: string) {
-    update((d) => ({
-      ...d,
-      tasks: [...d.tasks, {
-        id: uid(),
-        title,
-        domain: "work" as const,
-        priority: "high" as const,
-        completed: false,
-        createdAt: new Date().toISOString(),
-      }],
-    }));
-  }
 
   function completeChore(title: string) {
     update((d) => ({
@@ -55,6 +43,25 @@ export default function ChoresPage() {
     }));
   }
 
+  function addChoreAsTask() {
+    if (!addModal) return;
+    update((d) => ({
+      ...d,
+      tasks: [...d.tasks, {
+        id: uid(),
+        title: addModal.title,
+        domain: "work" as const,
+        priority: "medium" as const,
+        completed: false,
+        dueDate: dueDate || undefined,
+        createdAt: new Date().toISOString(),
+      }],
+    }));
+    setAddModal(null);
+    setDueDate("");
+    setDueTime("");
+  }
+
   return (
     <div>
       <div className="max-w-lg mx-auto px-4 pt-6 pb-2">
@@ -62,10 +69,9 @@ export default function ChoresPage() {
           <div className="w-3 h-3 rounded-full bg-work" />
           <h1 className="text-xl font-bold">Chores</h1>
         </div>
-        <p className="text-sm text-muted mb-4">High-impact actions for your family today</p>
+        <p className="text-sm text-muted mb-4">House and outdoor tasks to keep things running</p>
 
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-2 mb-5">
+        <div className="grid grid-cols-3 gap-2 mb-5">
           <div className="bg-card border border-card-border rounded-xl p-2.5 text-center">
             <div className="text-lg font-bold text-foreground">{pending}</div>
             <div className="text-[9px] text-muted">Open</div>
@@ -76,30 +82,20 @@ export default function ChoresPage() {
           </div>
           <div className="bg-card border border-card-border rounded-xl p-2.5 text-center">
             <div className="text-lg font-bold text-accent">{choreNudgesDone}</div>
-            <div className="text-[9px] text-muted">Nudges</div>
-          </div>
-          <div className="bg-card border border-card-border rounded-xl p-2.5 text-center">
-            <div className="text-lg font-bold text-warning">{choreJournalLogs}</div>
-            <div className="text-[9px] text-muted">Logged</div>
+            <div className="text-[9px] text-muted">Nudges Done</div>
           </div>
         </div>
 
-        {/* Smart Suggested Chores */}
         <section className="mb-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted mb-3">Today&apos;s Top 3</h2>
-          <p className="text-xs text-muted mb-3">Based on your patterns, connections, and what will have the biggest impact right now.</p>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted mb-2">Today&apos;s Top 3</h2>
+          <p className="text-xs text-muted mb-3">Highest-impact house tasks based on your patterns.</p>
           <div className="space-y-2">
             {suggestedChores.map((chore, i) => (
               <div key={i} className={`border rounded-xl p-4 ${chore.bg}`}>
-                <div className="flex items-start gap-3">
-                  <span className="text-lg">{chore.icon}</span>
-                  <div className="flex-1">
-                    <div className="text-xs font-semibold uppercase text-muted mb-1">{chore.category}</div>
-                    <p className="text-sm font-medium mb-1">{chore.title}</p>
-                    <p className="text-xs text-muted">{chore.why}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3 pl-8">
+                <div className="text-[10px] text-muted uppercase font-semibold mb-1">{chore.category}</div>
+                <p className="text-sm font-medium mb-1">{chore.title}</p>
+                <p className="text-xs text-muted">{chore.why}</p>
+                <div className="flex gap-2 mt-3">
                   <button
                     onClick={() => completeChore(chore.title)}
                     className="px-3 py-1.5 bg-success text-white rounded-lg text-xs font-medium"
@@ -107,7 +103,7 @@ export default function ChoresPage() {
                     Done
                   </button>
                   <button
-                    onClick={() => addChoreAsTask(chore.title)}
+                    onClick={() => setAddModal({ title: chore.title })}
                     className="px-3 py-1.5 bg-card border border-card-border rounded-lg text-xs font-medium text-muted"
                   >
                     Add to Tasks
@@ -119,109 +115,128 @@ export default function ChoresPage() {
         </section>
       </div>
 
-      <DomainPage
-        domain="work"
-        title=""
-        color="bg-work"
-        description=""
-      />
+      <DomainPage domain="work" title="" color="bg-work" description="" />
+
+      {/* Add to Tasks Modal */}
+      {addModal && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-end justify-center">
+          <div className="bg-background w-full max-w-lg rounded-t-2xl">
+            <div className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold">Add to Tasks</h2>
+                <button onClick={() => { setAddModal(null); setDueDate(""); setDueTime(""); }} className="text-muted hover:text-foreground p-1">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="bg-card border border-card-border rounded-xl p-3">
+                <div className="text-sm">{addModal.title}</div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Due date (optional)</label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full bg-card border border-card-border rounded-xl px-4 py-3 text-sm outline-none focus:border-accent"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Due time (optional)</label>
+                <input
+                  type="time"
+                  value={dueTime}
+                  onChange={(e) => setDueTime(e.target.value)}
+                  className="w-full bg-card border border-card-border rounded-xl px-4 py-3 text-sm outline-none focus:border-accent"
+                />
+              </div>
+
+              <button
+                onClick={addChoreAsTask}
+                className="w-full py-3 bg-accent text-white rounded-xl text-sm font-medium"
+              >
+                Add to Chore List
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// --- Smart Chore Generator ---
+// --- House/Outdoor Chore Generator ---
 
-interface SmartChore {
-  icon: string;
+interface HouseChore {
   category: string;
   title: string;
   why: string;
   bg: string;
 }
 
-function generateSmartChores(data: AppData, todayStr: string): SmartChore[] {
-  const chores: SmartChore[] = [];
+function generateHouseChores(data: AppData, todayStr: string): HouseChore[] {
+  const chores: HouseChore[] = [];
   const dayIdx = dayOfYear();
-  const wife = data.people.find((p) => p.relationship === "wife");
-  const kids = data.people.filter((p) => p.relationship === "child");
+  const serviceEntries = (data.journalLogs || []).filter((j) => (j.category === "service" || j.nudgeType === "chore") && daysBetween(j.date, todayStr) <= 14);
 
-  // Analyze patterns
-  const recentJournal = (data.journalLogs || []).filter((j) => daysBetween(j.date, todayStr) <= 14);
-  const serviceEntries = recentJournal.filter((j) => j.category === "service");
-  const recentMoods = data.journal.filter((j) => j.mood && daysBetween(j.date, todayStr) <= 7).map((j) => j.mood!);
-  const avgMood = recentMoods.length > 0 ? recentMoods.reduce((a, b) => a + b, 0) / recentMoods.length : 3;
-  const recentConnections = (data.connectionLogs || []).filter((c) => daysBetween(c.date, todayStr) <= 7);
-  const lowQualityConnections = recentConnections.filter((c) => c.mood && c.mood <= 3);
-
-  // --- CHORE 1: For your wife ---
-  if (wife) {
-    const wifeChores = [
-      { title: "Handle the dishes and clean the kitchen tonight", why: `${wife.name} shouldn't have to ask. Just do it.`, icon: "🍽️" },
-      { title: "Do a load of laundry — wash, dry, fold, put away", why: "The full cycle. Not leaving it in the dryer.", icon: "👕" },
-      { title: "Take over bedtime routine for all the kids tonight", why: `Give ${wife.name} an evening off. She deserves the break.`, icon: "🌙" },
-      { title: "Clean the bathrooms without being asked", why: "This is the chore nobody wants. Be the one who handles it.", icon: "🧹" },
-      { title: "Meal prep or cook dinner tonight", why: `Taking this off ${wife.name}'s plate shows you see the invisible work.`, icon: "🍳" },
-      { title: "Organize one messy area she's mentioned", why: "She's probably mentioned it more than once. Handle it today.", icon: "📦" },
-      { title: "Handle the grocery list and shopping", why: "One less thing for her to think about. That's the real gift.", icon: "🛒" },
-    ];
-
-    const choreIdx = lowQualityConnections.length > 0
-      ? (dayIdx + lowQualityConnections.length) % wifeChores.length
-      : dayIdx % wifeChores.length;
-
-    chores.push({
-      ...wifeChores[choreIdx],
-      category: `For ${wife.name}`,
-      bg: "bg-family/5 border-family/20",
-    });
-  }
-
-  // --- CHORE 2: For the kids / home ---
-  if (kids.length > 0) {
-    const kidChores = [
-      { title: `Organize ${kids[dayIdx % kids.length].name}'s room or play area`, why: "Their spaces reflect how cared for they feel.", icon: "🧸" },
-      { title: "Check school bags, lunch boxes, and supplies", why: "The small prep work prevents the morning chaos.", icon: "🎒" },
-      { title: `Set up a fun activity for ${kids[dayIdx % kids.length].name}`, why: "Not screens — something you do together.", icon: "🎨" },
-      { title: "Fix something in the kids' spaces that's broken", why: "That thing you keep walking past? Today's the day.", icon: "🔧" },
-      { title: "Clean out the car — crumbs, trash, old stuff", why: "It's the family vehicle. Make it feel fresh.", icon: "🚗" },
-    ];
-
-    chores.push({
-      ...kidChores[dayIdx % kidChores.length],
-      category: "Kids & Home",
-      bg: "bg-personal/5 border-personal/20",
-    });
-  } else {
-    const homeChores = [
-      { title: "Fix the thing that's been broken the longest", why: "You know exactly what it is.", icon: "🔧" },
-      { title: "Deep clean one room — floors, surfaces, everything", why: "One room done right changes the whole feel.", icon: "✨" },
-      { title: "Tackle the garage, closet, or storage area", why: "The 'I'll get to it' area. Get to it.", icon: "📦" },
-    ];
-    chores.push({
-      ...homeChores[dayIdx % homeChores.length],
-      category: "Home",
-      bg: "bg-personal/5 border-personal/20",
-    });
-  }
-
-  // --- CHORE 3: Proactive / unexpected ---
-  const proactiveChores = [
-    { title: "Check all lightbulbs, smoke detectors, and filters", why: "The invisible maintenance that protects your family.", icon: "💡", category: "Maintenance" },
-    { title: "Write a note and leave it somewhere she'll find it", why: "Not a text — a handwritten note. It hits different.", icon: "✉️", category: "Thoughtful" },
-    { title: "Plan a family activity for this weekend", why: "Don't wait to be asked. Take the lead on quality time.", icon: "📅", category: "Planning" },
-    { title: "Take out all the trash and recycling", why: "Simple. Unglamorous. Necessary. Just do it.", icon: "🗑️", category: "Quick Win" },
-    avgMood < 3
-      ? { title: "Do something that makes the house feel peaceful", why: "When you're running low, create calm for the people around you.", icon: "🕯️", category: "Atmosphere" }
-      : { title: "Surprise the family with something fun tonight", why: "You're in a good headspace. Share that energy.", icon: "🎉", category: "Surprise" },
-    serviceEntries.length === 0
-      ? { title: "Ask your wife: what's the one thing I can do today?", why: "You haven't logged a service act recently. Start by asking.", icon: "❓", category: "Ask" }
-      : { title: "Do something kind without anyone knowing", why: `You've done ${serviceEntries.length} acts of service recently. Keep building.`, icon: "🤫", category: "Stealth" },
+  // Pool of strictly house/outdoor chores
+  const kitchenChores = [
+    { title: "Do the dishes and wipe down all counters", why: "A clean kitchen sets the tone for the whole house." },
+    { title: "Clean out the fridge — toss expired items, wipe shelves", why: "Nobody else is going to do this. Be the one." },
+    { title: "Deep clean the stove and oven", why: "Grease builds up. 20 minutes and it's done." },
+    { title: "Sweep and mop the kitchen floor", why: "The floor under your feet says a lot about the house." },
+    { title: "Organize the pantry — group items, check expiry dates", why: "Reduces waste and makes cooking easier for everyone." },
   ];
 
-  chores.push({
-    ...proactiveChores[dayIdx % proactiveChores.length],
-    bg: "bg-growth/5 border-growth/20",
-  });
+  const bathroomChores = [
+    { title: "Scrub all toilets and sinks", why: "The chore nobody wants. Handle it without being asked." },
+    { title: "Clean the shower and bathtub", why: "Soap scum doesn't clean itself. 15 minutes." },
+    { title: "Restock bathroom supplies — toilet paper, soap, towels", why: "Small prep prevents small frustrations." },
+    { title: "Clean all bathroom mirrors", why: "Quick win. Takes 5 minutes and looks immediately better." },
+  ];
+
+  const outdoorChores = [
+    { title: "Mow the lawn", why: "Curb appeal matters. Keep the yard sharp." },
+    { title: "Take out all trash and recycling", why: "Simple. Unglamorous. Necessary." },
+    { title: "Pull weeds or tidy up the garden beds", why: "10 minutes outside makes a visible difference." },
+    { title: "Sweep the front porch and walkway", why: "First thing people see. Keep it clean." },
+    { title: "Clean out the garage — one section at a time", why: "The 'I'll get to it' project. Start with one corner." },
+    { title: "Wash the car inside and out", why: "The family vehicle deserves attention too." },
+    { title: "Check and clean the gutters", why: "Preventative maintenance saves expensive repairs." },
+  ];
+
+  const generalChores = [
+    { title: "Vacuum all floors and carpets", why: "The baseline of a clean house." },
+    { title: "Do a full load of laundry — wash, dry, fold, put away", why: "The full cycle. Not leaving it in the dryer." },
+    { title: "Dust all surfaces — shelves, fans, baseboards", why: "The stuff you don't see until it's done." },
+    { title: "Fix that thing that's been broken the longest", why: "You know exactly what it is." },
+    { title: "Change air filters and check smoke detectors", why: "Invisible maintenance that protects your family." },
+    { title: "Organize one closet or storage area", why: "Clutter creates stress. Clear space, clear mind." },
+    { title: "Tidy up the kids' rooms and play area", why: "Their spaces reflect how cared for they feel." },
+    { title: "Clean all windows inside and out", why: "Natural light changes how a room feels." },
+    { title: "Replace any burned-out lightbulbs", why: "Walk the house. Fix every dark corner." },
+  ];
+
+  // Pick one from each category based on day + history
+  const kitchenIdx = (dayIdx + serviceEntries.length) % kitchenChores.length;
+  const outdoorIdx = dayIdx % outdoorChores.length;
+  const generalIdx = (dayIdx + 3) % generalChores.length;
+
+  // Alternate bathroom/kitchen and vary the mix
+  if (dayIdx % 2 === 0) {
+    chores.push({ ...kitchenChores[kitchenIdx], category: "Kitchen", bg: "bg-work/5 border-work/20" });
+  } else {
+    const bathIdx = dayIdx % bathroomChores.length;
+    chores.push({ ...bathroomChores[bathIdx], category: "Bathroom", bg: "bg-work/5 border-work/20" });
+  }
+
+  chores.push({ ...outdoorChores[outdoorIdx], category: "Outdoor", bg: "bg-growth/5 border-growth/20" });
+  chores.push({ ...generalChores[generalIdx], category: "General", bg: "bg-personal/5 border-personal/20" });
 
   return chores;
 }

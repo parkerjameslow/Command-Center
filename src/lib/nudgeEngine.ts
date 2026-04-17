@@ -102,16 +102,14 @@ export function generateNudges(data: AppData, todayStr: string): Nudge[] {
       }
     }
 
-    // --- CHORE ---
+    // --- CHORE (house/outdoor only) ---
     const choreMessages = [
-      "Walk through the house. What's the one thing that's been bugging your wife? Handle it.",
-      "Is there a repair, a mess, or a project that's been on the 'later' list? 15 minutes. Start now.",
-      "Look at the house through your wife's eyes. What would she want done? Do that.",
-      "The kids' spaces — something broken, outgrown, or messy? Handle it before you're asked.",
-      serviceEntries.length >= 3
-        ? `You've done ${serviceEntries.length} acts of service recently. You're building trust and respect. What's next?`
-        : "Acts of service aren't optional. They're how you show love through action.",
-      "What's the one chore nobody wants to do? Be the one who does it. No announcement needed.",
+      "Take out all the trash and recycling before it piles up.",
+      "Is there a repair that's been waiting? Fix it today — 15 minutes.",
+      "Vacuum or sweep the main living areas.",
+      "Wipe down all kitchen counters and do the dishes.",
+      "Check the bathrooms — scrub the toilet, restock supplies.",
+      "The lawn, the porch, the walkway — pick one and clean it up.",
     ];
     nudges.push(makeNudge("chore", choreMessages[dayIdx % choreMessages.length], todayStr));
 

@@ -48,7 +48,6 @@ export function NudgeCards({ nudges, people, onNudgeTap, phase }: NudgeCardsProp
               className={`w-full text-left ${style.bg} border ${style.border} rounded-xl p-4 space-y-2`}
             >
               <div className="flex items-center gap-2">
-                <span className="text-sm">{style.icon}</span>
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">
                   {style.label}
                 </span>
