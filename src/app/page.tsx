@@ -1,9 +1,9 @@
 "use client";
 
-import { useStore, today, getStreak } from "@/lib/store";
+import { useStore, today, getStreak, uid, type Nudge } from "@/lib/store";
 import { generateNudges } from "@/lib/nudgeEngine";
 import { NudgeCards } from "@/components/NudgeCards";
-import { PeoplePulse } from "@/components/PeoplePulse";
+import { NudgeAction } from "@/components/NudgeAction";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 
@@ -18,6 +18,7 @@ export default function Dashboard() {
   const { data, loaded, update } = useStore();
   const todayStr = today();
   const [view, setView] = useState<"dashboard" | "high" | "all" | "people">("dashboard");
+  const [activeNudge, setActiveNudge] = useState<Nudge | null>(null);
 
   // All hooks must be before any early return
   const nudges = useMemo(() => generateNudges(data, todayStr), [data, todayStr]);
@@ -44,11 +45,48 @@ export default function Dashboard() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-  function completeNudge(nudgeId: string) {
+  function handleNudgeSave(response: string, mood: number) {
+    if (!activeNudge) return;
+
+    // Mark nudge as completed
     update((d) => ({
       ...d,
-      nudges: [...d.nudges, { id: nudgeId, type: "self" as const, message: "", completed: true, date: todayStr, createdAt: new Date().toISOString() }],
+      nudges: [...d.nudges, {
+        id: activeNudge.id,
+        type: activeNudge.type,
+        message: activeNudge.message,
+        personId: activeNudge.personId,
+        completed: true,
+        response: response || undefined,
+        date: todayStr,
+        createdAt: new Date().toISOString(),
+      }],
+      // Add to journal log if they wrote something
+      ...(response ? {
+        journalLogs: [...d.journalLogs, {
+          id: uid(),
+          date: todayStr,
+          category: activeNudge.type === "gratitude" ? "gratitude" as const
+            : activeNudge.type === "service" ? "service" as const
+            : activeNudge.type === "relationship" ? "connection" as const
+            : activeNudge.type === "chore" ? "win" as const
+            : "reflection" as const,
+          title: activeNudge.message.slice(0, 80),
+          content: response,
+          mood,
+          relatedPersonId: activeNudge.personId || undefined,
+          nudgeType: activeNudge.type,
+          createdAt: new Date().toISOString(),
+        }],
+      } : {}),
     }));
+
+    // If it's a relationship nudge and they responded, mark person as connected
+    if (activeNudge.personId && response) {
+      markPersonContact(activeNudge.personId);
+    }
+
+    setActiveNudge(null);
   }
 
   function markPersonContact(personId: string) {
@@ -325,9 +363,18 @@ export default function Dashboard() {
       <NudgeCards
         nudges={nudges}
         people={data.people}
-        onComplete={completeNudge}
-        onContactPerson={markPersonContact}
+        onNudgeTap={setActiveNudge}
       />
+
+      {/* Nudge Action Modal */}
+      {activeNudge && (
+        <NudgeAction
+          nudge={activeNudge}
+          personName={activeNudge.personId ? data.people.find((p) => p.id === activeNudge.personId)?.name : undefined}
+          onSave={handleNudgeSave}
+          onClose={() => setActiveNudge(null)}
+        />
+      )}
 
       {/* Today's Habits */}
       {dailyHabits.length > 0 && (

@@ -13,14 +13,12 @@ const TYPE_STYLES: Record<Nudge["type"], { bg: string; border: string; icon: str
 interface NudgeCardsProps {
   nudges: Nudge[];
   people: AppData["people"];
-  onComplete: (nudgeId: string) => void;
-  onContactPerson: (personId: string) => void;
+  onNudgeTap: (nudge: Nudge) => void;
 }
 
-export function NudgeCards({ nudges, people, onComplete, onContactPerson }: NudgeCardsProps) {
+export function NudgeCards({ nudges, people, onNudgeTap }: NudgeCardsProps) {
   if (nudges.length === 0) return null;
 
-  // Show max 3 nudges at a time, rotate based on time
   const hour = new Date().getHours();
   const startIdx = Math.floor(hour / 3) % Math.max(1, nudges.length);
   const visible = nudges.slice(startIdx, startIdx + 3).length >= 1
@@ -40,36 +38,25 @@ export function NudgeCards({ nudges, people, onComplete, onContactPerson }: Nudg
             : null;
 
           return (
-            <div
+            <button
               key={nudge.id}
-              className={`${style.bg} border ${style.border} rounded-xl p-4 space-y-2`}
+              onClick={() => onNudgeTap(nudge)}
+              className={`w-full text-left ${style.bg} border ${style.border} rounded-xl p-4 space-y-2`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">{style.icon}</span>
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-                    {style.label}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{style.icon}</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  {style.label}
+                </span>
+                {person && (
+                  <span className="text-[11px] text-muted ml-auto">{person.name}</span>
+                )}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted ml-auto flex-shrink-0">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
               </div>
               <p className="text-sm leading-relaxed">{nudge.message}</p>
-              <div className="flex gap-2 pt-1">
-                {person && (
-                  <button
-                    onClick={() => onContactPerson(person.id)}
-                    className="px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium"
-                  >
-                    Mark Connected
-                  </button>
-                )}
-                <button
-                  onClick={() => onComplete(nudge.id)}
-                  className="px-3 py-1.5 bg-card border border-card-border rounded-lg text-xs font-medium text-muted"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
+            </button>
           );
         })}
       </div>

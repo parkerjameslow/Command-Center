@@ -146,6 +146,73 @@ export function generateNudges(data: AppData, todayStr: string): Nudge[] {
     nudges.push(makeNudge("gratitude", gratitudePrompts[dayOfYear() % gratitudePrompts.length], todayStr));
   }
 
+  // --- JOURNAL-INFORMED NUDGES ---
+  const journalLogs = data.journalLogs || [];
+  const recentJournalLogs = journalLogs.filter((j) => daysBetween(j.date, todayStr) <= 14);
+
+  // If they've been logging gratitude, encourage it
+  const gratitudeEntries = recentJournalLogs.filter((j) => j.category === "gratitude");
+  if (gratitudeEntries.length >= 3 && hour >= 8 && hour <= 11) {
+    nudges.push(makeNudge(
+      "gratitude",
+      `You've logged ${gratitudeEntries.length} gratitude entries recently. That practice is changing your brain. Keep it going — what are you grateful for right now?`,
+      todayStr
+    ));
+  }
+
+  // If they haven't logged anything in a while, nudge
+  if (journalLogs.length > 0 && recentJournalLogs.length === 0) {
+    nudges.push(makeNudge(
+      "self",
+      "You haven't journaled in over 2 weeks. The data you log shapes the guidance you get. Take 2 minutes to reflect.",
+      todayStr
+    ));
+  }
+
+  // If recent service entries exist, build on them
+  const serviceEntries = recentJournalLogs.filter((j) => j.category === "service");
+  if (serviceEntries.length >= 2) {
+    nudges.push(makeNudge(
+      "service",
+      `You've done ${serviceEntries.length} acts of service recently. That pattern is building trust. What's the next level?`,
+      todayStr
+    ));
+  }
+
+  // If recent connection logs show declining mood with a specific person
+  const connectionEntries = recentJournalLogs.filter((j) => j.category === "connection" && j.mood);
+  if (connectionEntries.length >= 3) {
+    const lowMoodConnections = connectionEntries.filter((j) => (j.mood || 3) <= 2);
+    if (lowMoodConnections.length >= 2) {
+      const personId = lowMoodConnections[0].relatedPersonId;
+      const person = personId ? data.people.find((p) => p.id === personId) : null;
+      if (person) {
+        nudges.push(makeNudge(
+          "relationship",
+          `Your last few interactions with ${person.name} haven't felt great. Something might need attention. Consider having an honest conversation about how things are going.`,
+          todayStr,
+          person.id
+        ));
+      }
+    }
+  }
+
+  // If mood is trending down in journal entries, suggest change
+  const moodEntries = recentJournalLogs.filter((j) => j.mood).map((j) => j.mood!);
+  if (moodEntries.length >= 5) {
+    const recentHalf = moodEntries.slice(0, Math.floor(moodEntries.length / 2));
+    const olderHalf = moodEntries.slice(Math.floor(moodEntries.length / 2));
+    const recentAvg = recentHalf.reduce((a, b) => a + b, 0) / recentHalf.length;
+    const olderAvg = olderHalf.reduce((a, b) => a + b, 0) / olderHalf.length;
+    if (recentAvg < olderAvg - 0.5) {
+      nudges.push(makeNudge(
+        "self",
+        "Your journal entries show your mood has been declining. What changed? Sometimes naming the thing is the first step to fixing it.",
+        todayStr
+      ));
+    }
+  }
+
   // Filter out already-completed nudges for today
   const existingCompleted = data.nudges
     .filter((n) => n.date === todayStr && n.completed)

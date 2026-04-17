@@ -101,7 +101,20 @@ export interface Nudge {
   message: string;
   personId?: string;
   completed: boolean;
+  response?: string; // what the user did
   date: string;
+  createdAt: string;
+}
+
+export interface JournalLog {
+  id: string;
+  date: string;
+  category: "nudge" | "gratitude" | "connection" | "reflection" | "service" | "win" | "lesson";
+  title: string;
+  content: string;
+  mood?: number;
+  relatedPersonId?: string;
+  nudgeType?: string;
   createdAt: string;
 }
 
@@ -116,6 +129,7 @@ export interface AppData {
   people: Person[];
   connectionLogs: ConnectionLog[];
   nudges: Nudge[];
+  journalLogs: JournalLog[];
 }
 
 const DEFAULT_DATA: AppData = {
@@ -129,6 +143,7 @@ const DEFAULT_DATA: AppData = {
   people: [],
   connectionLogs: [],
   nudges: [],
+  journalLogs: [],
 };
 
 // Snake_case <-> camelCase helpers
@@ -182,7 +197,7 @@ function saveLocal(data: AppData) {
 
 // Supabase loader
 async function loadFromSupabase(): Promise<AppData> {
-  const [habits, habitLogs, tasks, goals, journal, familyEvents, finance, people, connectionLogs, nudges] =
+  const [habits, habitLogs, tasks, goals, journal, familyEvents, finance, people, connectionLogs, nudges, journalLogs] =
     await Promise.all([
       supabase.from("habits").select("*").order("created_at"),
       supabase.from("habit_logs").select("*").order("date", { ascending: false }),
@@ -194,6 +209,7 @@ async function loadFromSupabase(): Promise<AppData> {
       supabase.from("people").select("*").order("created_at"),
       supabase.from("connection_logs").select("*").order("date", { ascending: false }),
       supabase.from("nudges").select("*").order("created_at"),
+      supabase.from("journal_logs").select("*").order("date", { ascending: false }),
     ]);
 
   return {
@@ -207,6 +223,7 @@ async function loadFromSupabase(): Promise<AppData> {
     people: (people.data ?? []).map((r) => toCamel(r) as unknown as Person),
     connectionLogs: (connectionLogs.data ?? []).map((r) => toCamel(r) as unknown as ConnectionLog),
     nudges: (nudges.data ?? []).map((r) => toCamel(r) as unknown as Nudge),
+    journalLogs: (journalLogs.data ?? []).map((r) => toCamel(r) as unknown as JournalLog),
   };
 }
 
@@ -350,7 +367,13 @@ async function syncToSupabase(prev: AppData, next: AppData) {
     promises.push(run(supabase.from("nudges").insert(forInsert(n as unknown as Record<string, unknown>))));
   }
   for (const n of updatedNudges) {
-    promises.push(run(supabase.from("nudges").update({ completed: n.completed }).eq("id", n.id)));
+    promises.push(run(supabase.from("nudges").update({ completed: n.completed, response: n.response }).eq("id", n.id)));
+  }
+
+  // Journal Logs
+  const newJournalLogs = next.journalLogs.filter((j) => !prev.journalLogs.find((pj) => pj.id === j.id));
+  for (const j of newJournalLogs) {
+    promises.push(run(supabase.from("journal_logs").insert(forInsert(j as unknown as Record<string, unknown>))));
   }
 
   await Promise.all(promises);
