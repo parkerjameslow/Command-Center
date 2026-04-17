@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useStore, today } from "@/lib/store";
 import { generatePersonalSuggestions, generateFamilySuggestions, generateGrowthSuggestions } from "@/lib/suggestions";
+import { generateHouseChores } from "@/app/chores/page";
 import { useMemo } from "react";
 
 export function BottomNav() {
@@ -32,35 +33,16 @@ export function BottomNav() {
     return {
       personal: countRemaining(generatePersonalSuggestions(data, todayStr), "personal"),
       family: countRemaining(generateFamilySuggestions(data, todayStr), "family"),
-      chores: countRemaining(
-        // chores use domain "work" — we only need the count so any 3-item array works
-        // but we want to be domain-accurate for completion matching
-        // approximate: 3 - count of work tasks completed today matching any Top 3 pattern
-        [{ title: "" }, { title: "" }, { title: "" }].slice(0, 3),
-        "__none__" // fallback: always show 3 if no chore data to match
-      ),
+      chores: countRemaining(generateHouseChores(data, todayStr), "work"),
       growth: countRemaining(generateGrowthSuggestions(data, todayStr), "growth"),
     };
   }, [data, todayStr]);
-
-  // For chores, calculate remaining from the 3 default suggestions
-  // We need to regenerate here to match the Chores page
-  const choresRemaining = useMemo(() => {
-    // Chores page generates 3 suggestions; completed tasks on "work" domain today with those titles count as done
-    // Since we can't easily import the chore generator without circular refs, just count: 3 - completed today
-    const completedToday = data.tasks.filter((t) => {
-      if (!t.completed || t.domain !== "work") return false;
-      const d = new Date(t.createdAt).toISOString().slice(0, 10);
-      return d === todayStr;
-    }).length;
-    return Math.max(0, 3 - completedToday);
-  }, [data.tasks, todayStr]);
 
   const tabs = [
     { href: "/", label: "Home", icon: HomeIcon, badge: 0 },
     { href: "/personal", label: "Personal", icon: PersonalIcon, badge: badges.personal },
     { href: "/family", label: "Family", icon: FamilyIcon, badge: badges.family },
-    { href: "/chores", label: "Chores", icon: ChoresIcon, badge: choresRemaining },
+    { href: "/chores", label: "Chores", icon: ChoresIcon, badge: badges.chores },
     { href: "/growth", label: "Growth", icon: GrowthIcon, badge: badges.growth },
   ];
 

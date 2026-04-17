@@ -184,7 +184,7 @@ interface HouseChore {
   bg: string;
 }
 
-function generateHouseChores(data: AppData, todayStr: string): HouseChore[] {
+export function generateHouseChores(data: AppData, todayStr: string): HouseChore[] {
   const chores: HouseChore[] = [];
   const dayIdx = dayOfYear();
   const serviceEntries = (data.journalLogs || []).filter((j) => (j.category === "service" || j.nudgeType === "chore") && daysBetween(j.date, todayStr) <= 14);

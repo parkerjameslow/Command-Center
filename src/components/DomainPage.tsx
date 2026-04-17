@@ -190,14 +190,16 @@ export function DomainPage({ domain, title, color, description }: DomainPageProp
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <div className={`w-3 h-3 rounded-full ${color}`} />
-          <h1 className="text-xl font-bold">{title}</h1>
+      {/* Header — only show when title is provided */}
+      {title && (
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`w-3 h-3 rounded-full ${color}`} />
+            <h1 className="text-xl font-bold">{title}</h1>
+          </div>
+          {description && <p className="text-sm text-muted">{description}</p>}
         </div>
-        <p className="text-sm text-muted">{description}</p>
-      </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-card border border-card-border rounded-xl p-1">
