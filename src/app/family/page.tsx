@@ -2,6 +2,7 @@
 
 import { DomainPage } from "@/components/DomainPage";
 import { Top3Suggestions } from "@/components/Top3Suggestions";
+import { CompletedCard } from "@/components/CompletedCard";
 import { useStore, uid, today } from "@/lib/store";
 import { generateFamilySuggestions } from "@/lib/suggestions";
 import { useState, useMemo } from "react";
@@ -35,6 +36,8 @@ export default function FamilyPage() {
         </Link>
       </div>
 
+      <FamilyCalendar />
+
       <Top3Suggestions
         title="Today's Top 3"
         subtitle="Most impactful actions for your wife, kids, and family today."
@@ -43,7 +46,7 @@ export default function FamilyPage() {
         journalCategory="connection"
       />
 
-      <FamilyCalendar />
+      <CompletedCard domain="family" />
     </div>
   );
 }

@@ -331,69 +331,35 @@ export function DomainPage({ domain, title, color, description }: DomainPageProp
             })}
 
           {(() => {
-            const today = new Date().toISOString().slice(0, 10);
-            const todayCompleted = completedTasks.filter((t) => {
-              const d = new Date(t.createdAt).toISOString().slice(0, 10);
-              return d === today;
-            });
             const archived = completedTasks.filter((t) => {
               const d = new Date(t.createdAt);
               const daysAgo = Math.floor((Date.now() - d.getTime()) / 86400000);
               return daysAgo >= 1 && daysAgo <= 30;
             }).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
-            return (
-              <>
-                {todayCompleted.length > 0 && (
-                  <div className="mt-4">
-                    <div className="text-xs font-semibold text-muted uppercase mb-2">Completed Today ({todayCompleted.length})</div>
-                    <div className="space-y-2">
-                      {todayCompleted.map((task) => (
-                        <div
-                          key={task.id}
-                          className="bg-success/5 border border-success/20 rounded-xl p-3 flex items-center gap-3"
-                        >
-                          <button
-                            onClick={() => toggleTask(task.id)}
-                            className="w-5 h-5 rounded border-2 border-success bg-success flex items-center justify-center flex-shrink-0"
-                          >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </button>
-                          <span className="flex-1 text-sm line-through text-muted">{task.title}</span>
-                          <span className="text-[10px] text-muted">{formatTime(task.createdAt)}</span>
-                        </div>
-                      ))}
+            return archived.length > 0 ? (
+              <details className="mt-4">
+                <summary className="text-xs text-muted cursor-pointer">
+                  Archive — last 30 days ({archived.length})
+                </summary>
+                <div className="space-y-2 mt-2">
+                  {archived.map((task) => (
+                    <div
+                      key={task.id}
+                      className="bg-card/50 border border-card-border rounded-xl p-3 flex items-center gap-3 opacity-70"
+                    >
+                      <div className="w-5 h-5 rounded border-2 border-success bg-success flex items-center justify-center flex-shrink-0">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                      <span className="flex-1 text-sm line-through">{task.title}</span>
+                      <span className="text-[10px] text-muted">{formatDateTime(task.createdAt)}</span>
                     </div>
-                  </div>
-                )}
-
-                {archived.length > 0 && (
-                  <details className="mt-4">
-                    <summary className="text-xs text-muted cursor-pointer">
-                      Archive — last 30 days ({archived.length})
-                    </summary>
-                    <div className="space-y-2 mt-2">
-                      {archived.map((task) => (
-                        <div
-                          key={task.id}
-                          className="bg-card/50 border border-card-border rounded-xl p-3 flex items-center gap-3 opacity-70"
-                        >
-                          <div className="w-5 h-5 rounded border-2 border-success bg-success flex items-center justify-center flex-shrink-0">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </div>
-                          <span className="flex-1 text-sm line-through">{task.title}</span>
-                          <span className="text-[10px] text-muted">{formatDateTime(task.createdAt)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
-              </>
-            );
+                  ))}
+                </div>
+              </details>
+            ) : null;
           })()}
         </div>
       )}
@@ -605,15 +571,6 @@ export function DomainPage({ domain, title, color, description }: DomainPageProp
       )}
     </div>
   );
-}
-
-function formatTime(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-  } catch {
-    return "";
-  }
 }
 
 function formatDateTime(iso: string): string {

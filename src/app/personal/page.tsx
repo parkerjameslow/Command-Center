@@ -2,6 +2,7 @@
 
 import { DomainPage } from "@/components/DomainPage";
 import { Top3Suggestions } from "@/components/Top3Suggestions";
+import { CompletedCard } from "@/components/CompletedCard";
 import { useStore, today } from "@/lib/store";
 import { generatePersonalSuggestions } from "@/lib/suggestions";
 import { useMemo } from "react";
@@ -34,6 +35,8 @@ export default function PersonalPage() {
         domain="personal"
         journalCategory="reflection"
       />
+
+      <CompletedCard domain="personal" />
 
       <div className="max-w-lg mx-auto px-4 pb-6">
         <Link

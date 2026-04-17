@@ -2,6 +2,7 @@
 
 import { DomainPage } from "@/components/DomainPage";
 import { Top3Suggestions } from "@/components/Top3Suggestions";
+import { CompletedCard } from "@/components/CompletedCard";
 import { useStore, today } from "@/lib/store";
 import { generateGrowthSuggestions } from "@/lib/suggestions";
 import { useMemo } from "react";
@@ -26,6 +27,8 @@ export default function GrowthPage() {
         domain="growth"
         journalCategory="lesson"
       />
+
+      <CompletedCard domain="growth" />
     </div>
   );
 }

@@ -34,14 +34,14 @@ export function NudgeCards({ nudges, people, onNudgeTap, onSeeAll }: NudgeCardsP
     <section>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Nudges</h2>
-        <div className="flex items-center gap-3">
-          {nudges.length > 3 && (
-            <span className="text-[11px] text-muted">{nudges.length} active</span>
-          )}
-          {onSeeAll && (
-            <button onClick={onSeeAll} className="text-xs text-accent">See all</button>
-          )}
-        </div>
+        {onSeeAll && nudges.length > 0 && (
+          <button
+            onClick={onSeeAll}
+            className="px-2.5 py-1 bg-accent/10 text-accent rounded-full text-[11px] font-medium hover:bg-accent/20 transition-colors"
+          >
+            {nudges.length} active
+          </button>
+        )}
       </div>
       <div className="space-y-2">
         {visible.map((nudge) => {

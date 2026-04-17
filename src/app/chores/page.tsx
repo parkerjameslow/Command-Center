@@ -2,6 +2,7 @@
 
 import { DomainPage } from "@/components/DomainPage";
 import { useStore, uid, today, type AppData } from "@/lib/store";
+import { CompletedCard } from "@/components/CompletedCard";
 import { useMemo, useState } from "react";
 
 export default function ChoresPage() {
@@ -118,6 +119,8 @@ export default function ChoresPage() {
           </div>
         </section>
       </div>
+
+      <CompletedCard domain="work" />
 
       {/* Add to Tasks Modal */}
       {addModal && (
