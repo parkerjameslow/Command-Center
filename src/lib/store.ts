@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
 
 // Types
@@ -95,7 +95,7 @@ const DEFAULT_DATA: AppData = {
   finance: [],
 };
 
-// Snake_case <-> camelCase helpers for Supabase
+// Snake_case <-> camelCase helpers
 function toCamel(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(row)) {
@@ -108,6 +108,7 @@ function toCamel(row: Record<string, unknown>): Record<string, unknown> {
 function toSnake(obj: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(obj)) {
+    if (k === "id") { out[k] = v; continue; }
     const snake = k.replace(/[A-Z]/g, (c) => "_" + c.toLowerCase());
     out[snake] = v;
   }
@@ -166,19 +167,177 @@ async function loadFromSupabase(): Promise<AppData> {
   };
 }
 
+// Sync engine: detects diffs between prev and next state and persists to Supabase
+async function syncToSupabase(prev: AppData, next: AppData) {
+  const userId = (await supabase.auth.getUser()).data.user?.id;
+  if (!userId) return;
+
+  // Helper to convert supabase query builder to promise
+  const run = (query: { then: (fn: (res: unknown) => void) => unknown }) =>
+    new Promise<unknown>((resolve, reject) =>
+      (query as { then: (fn: (r: unknown) => void, fn2: (e: unknown) => void) => void }).then(resolve, reject)
+    );
+
+  const promises: Promise<unknown>[] = [];
+
+  // Tasks
+  const newTasks = next.tasks.filter((t) => !prev.tasks.find((p) => p.id === t.id));
+  const deletedTasks = prev.tasks.filter((t) => !next.tasks.find((n) => n.id === t.id));
+  const updatedTasks = next.tasks.filter((t) => {
+    const old = prev.tasks.find((p) => p.id === t.id);
+    return old && JSON.stringify(old) !== JSON.stringify(t);
+  });
+  for (const t of newTasks) {
+    promises.push(run(
+      supabase.from("tasks").insert({
+        ...toSnake(t as unknown as Record<string, unknown>),
+        user_id: userId,
+      })
+    ));
+  }
+  for (const t of deletedTasks) {
+    promises.push(run(supabase.from("tasks").delete().eq("id", t.id)));
+  }
+  for (const t of updatedTasks) {
+    const { id, ...rest } = toSnake(t as unknown as Record<string, unknown>);
+    promises.push(run(supabase.from("tasks").update(rest).eq("id", id)));
+  }
+
+  // Habits
+  const newHabits = next.habits.filter((h) => !prev.habits.find((p) => p.id === h.id));
+  const deletedHabits = prev.habits.filter((h) => !next.habits.find((n) => n.id === h.id));
+  for (const h of newHabits) {
+    promises.push(run(
+      supabase.from("habits").insert({
+        ...toSnake(h as unknown as Record<string, unknown>),
+        user_id: userId,
+      })
+    ));
+  }
+  for (const h of deletedHabits) {
+    promises.push(run(supabase.from("habits").delete().eq("id", h.id)));
+  }
+
+  // Habit Logs
+  const newLogs = next.habitLogs.filter(
+    (l) => !prev.habitLogs.find((p) => p.habitId === l.habitId && p.date === l.date)
+  );
+  const updatedLogs = next.habitLogs.filter((l) => {
+    const old = prev.habitLogs.find((p) => p.habitId === l.habitId && p.date === l.date);
+    return old && old.completed !== l.completed;
+  });
+  for (const l of newLogs) {
+    promises.push(run(
+      supabase.from("habit_logs").insert({
+        habit_id: l.habitId,
+        date: l.date,
+        completed: l.completed,
+        user_id: userId,
+      })
+    ));
+  }
+  for (const l of updatedLogs) {
+    promises.push(run(
+      supabase
+        .from("habit_logs")
+        .update({ completed: l.completed })
+        .eq("habit_id", l.habitId)
+        .eq("date", l.date)
+    ));
+  }
+
+  // Goals
+  const newGoals = next.goals.filter((g) => !prev.goals.find((p) => p.id === g.id));
+  const deletedGoals = prev.goals.filter((g) => !next.goals.find((n) => n.id === g.id));
+  const updatedGoals = next.goals.filter((g) => {
+    const old = prev.goals.find((p) => p.id === g.id);
+    return old && JSON.stringify(old) !== JSON.stringify(g);
+  });
+  for (const g of newGoals) {
+    promises.push(run(
+      supabase.from("goals").insert({
+        ...toSnake(g as unknown as Record<string, unknown>),
+        user_id: userId,
+      })
+    ));
+  }
+  for (const g of deletedGoals) {
+    promises.push(run(supabase.from("goals").delete().eq("id", g.id)));
+  }
+  for (const g of updatedGoals) {
+    const { id, ...rest } = toSnake(g as unknown as Record<string, unknown>);
+    promises.push(run(supabase.from("goals").update(rest).eq("id", id)));
+  }
+
+  // Journal
+  const newJournal = next.journal.filter((j) => !prev.journal.find((p) => p.id === j.id));
+  const updatedJournal = next.journal.filter((j) => {
+    const old = prev.journal.find((p) => p.id === j.id);
+    return old && JSON.stringify(old) !== JSON.stringify(j);
+  });
+  for (const j of newJournal) {
+    promises.push(run(
+      supabase.from("journal").insert({
+        ...toSnake(j as unknown as Record<string, unknown>),
+        user_id: userId,
+      })
+    ));
+  }
+  for (const j of updatedJournal) {
+    const { id, ...rest } = toSnake(j as unknown as Record<string, unknown>);
+    promises.push(run(supabase.from("journal").update(rest).eq("id", id)));
+  }
+
+  // Family Events
+  const newEvents = next.familyEvents.filter((e) => !prev.familyEvents.find((p) => p.id === e.id));
+  const deletedEvents = prev.familyEvents.filter((e) => !next.familyEvents.find((n) => n.id === e.id));
+  for (const e of newEvents) {
+    promises.push(run(
+      supabase.from("family_events").insert({
+        ...toSnake(e as unknown as Record<string, unknown>),
+        user_id: userId,
+      })
+    ));
+  }
+  for (const e of deletedEvents) {
+    promises.push(run(supabase.from("family_events").delete().eq("id", e.id)));
+  }
+
+  // Finance
+  const newFinance = next.finance.filter((f) => !prev.finance.find((p) => p.id === f.id));
+  const deletedFinance = prev.finance.filter((f) => !next.finance.find((n) => n.id === f.id));
+  for (const f of newFinance) {
+    promises.push(run(
+      supabase.from("finance").insert({
+        ...toSnake(f as unknown as Record<string, unknown>),
+        user_id: userId,
+      })
+    ));
+  }
+  for (const f of deletedFinance) {
+    promises.push(run(supabase.from("finance").delete().eq("id", f.id)));
+  }
+
+  await Promise.all(promises);
+}
+
 export function useStore() {
   const [data, setData] = useState<AppData>(DEFAULT_DATA);
   const [loaded, setLoaded] = useState(false);
   const useSupabase = isSupabaseConfigured();
+  const prevRef = useRef<AppData>(DEFAULT_DATA);
 
   useEffect(() => {
     if (useSupabase) {
       loadFromSupabase().then((d) => {
         setData(d);
+        prevRef.current = d;
         setLoaded(true);
       });
     } else {
-      setData(loadLocal());
+      const d = loadLocal();
+      setData(d);
+      prevRef.current = d;
       setLoaded(true);
     }
   }, [useSupabase]);
@@ -187,132 +346,32 @@ export function useStore() {
     (updater: (prev: AppData) => AppData) => {
       setData((prev) => {
         const next = updater(prev);
-        if (!useSupabase) {
+        if (useSupabase) {
+          // Sync diff to Supabase in background
+          syncToSupabase(prev, next).catch(console.error);
+        } else {
           saveLocal(next);
         }
+        prevRef.current = next;
         return next;
       });
     },
     [useSupabase]
   );
 
-  return { data, loaded, update, useSupabase };
+  // Reload data from Supabase (call after navigation)
+  const reload = useCallback(async () => {
+    if (useSupabase) {
+      const d = await loadFromSupabase();
+      setData(d);
+      prevRef.current = d;
+    }
+  }, [useSupabase]);
+
+  return { data, loaded, update, reload, useSupabase };
 }
 
-// Supabase CRUD helpers
-export const db = {
-  async addHabit(habit: Omit<Habit, "id" | "createdAt">) {
-    const { data, error } = await supabase
-      .from("habits")
-      .insert(toSnake({ ...habit, userId: (await supabase.auth.getUser()).data.user?.id }))
-      .select()
-      .single();
-    if (error) throw error;
-    return toCamel(data) as unknown as Habit;
-  },
-
-  async deleteHabit(id: string) {
-    await supabase.from("habits").delete().eq("id", id);
-  },
-
-  async toggleHabitLog(habitId: string, date: string, completed: boolean) {
-    const userId = (await supabase.auth.getUser()).data.user?.id;
-    const { data: existing } = await supabase
-      .from("habit_logs")
-      .select("id")
-      .eq("habit_id", habitId)
-      .eq("date", date)
-      .single();
-
-    if (existing) {
-      await supabase.from("habit_logs").update({ completed }).eq("id", existing.id);
-    } else {
-      await supabase
-        .from("habit_logs")
-        .insert({ habit_id: habitId, date, completed, user_id: userId });
-    }
-  },
-
-  async addTask(task: Omit<Task, "id" | "createdAt">) {
-    const { data, error } = await supabase
-      .from("tasks")
-      .insert(toSnake({ ...task, userId: (await supabase.auth.getUser()).data.user?.id }))
-      .select()
-      .single();
-    if (error) throw error;
-    return toCamel(data) as unknown as Task;
-  },
-
-  async updateTask(id: string, updates: Partial<Task>) {
-    await supabase.from("tasks").update(toSnake(updates as Record<string, unknown>)).eq("id", id);
-  },
-
-  async deleteTask(id: string) {
-    await supabase.from("tasks").delete().eq("id", id);
-  },
-
-  async addGoal(goal: Omit<Goal, "id" | "createdAt">) {
-    const { data, error } = await supabase
-      .from("goals")
-      .insert(toSnake({ ...goal, userId: (await supabase.auth.getUser()).data.user?.id }))
-      .select()
-      .single();
-    if (error) throw error;
-    return toCamel(data) as unknown as Goal;
-  },
-
-  async updateGoal(id: string, updates: Partial<Goal>) {
-    await supabase.from("goals").update(toSnake(updates as Record<string, unknown>)).eq("id", id);
-  },
-
-  async deleteGoal(id: string) {
-    await supabase.from("goals").delete().eq("id", id);
-  },
-
-  async addJournalEntry(entry: Omit<JournalEntry, "id" | "createdAt">) {
-    const { data, error } = await supabase
-      .from("journal")
-      .insert(toSnake({ ...entry, userId: (await supabase.auth.getUser()).data.user?.id }))
-      .select()
-      .single();
-    if (error) throw error;
-    return toCamel(data) as unknown as JournalEntry;
-  },
-
-  async updateJournalEntry(id: string, updates: Partial<JournalEntry>) {
-    await supabase.from("journal").update(toSnake(updates as Record<string, unknown>)).eq("id", id);
-  },
-
-  async addFamilyEvent(event: Omit<FamilyEvent, "id">) {
-    const { data, error } = await supabase
-      .from("family_events")
-      .insert(toSnake({ ...event, userId: (await supabase.auth.getUser()).data.user?.id }))
-      .select()
-      .single();
-    if (error) throw error;
-    return toCamel(data) as unknown as FamilyEvent;
-  },
-
-  async deleteFamilyEvent(id: string) {
-    await supabase.from("family_events").delete().eq("id", id);
-  },
-
-  async addFinanceEntry(entry: Omit<FinanceEntry, "id">) {
-    const { data, error } = await supabase
-      .from("finance")
-      .insert(toSnake({ ...entry, userId: (await supabase.auth.getUser()).data.user?.id }))
-      .select()
-      .single();
-    if (error) throw error;
-    return toCamel(data) as unknown as FinanceEntry;
-  },
-
-  async deleteFinanceEntry(id: string) {
-    await supabase.from("finance").delete().eq("id", id);
-  },
-};
-
-// Helper: generate unique ID (for localStorage mode)
+// Helper: generate unique ID
 export function uid(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
