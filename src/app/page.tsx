@@ -2,6 +2,7 @@
 
 import { useStore, today, getStreak, uid, type Nudge } from "@/lib/store";
 import { generateNudges } from "@/lib/nudgeEngine";
+import { generateDailyGoals, isGoalCompletedToday } from "@/lib/dailyGoals";
 import { NudgeCards } from "@/components/NudgeCards";
 import { NudgeAction } from "@/components/NudgeAction";
 import Link from "next/link";
@@ -745,6 +746,37 @@ export default function Dashboard() {
           </Link>
         </div>
       </section>
+
+      {/* Daily Goals Card */}
+      {(() => {
+        const dailyGoalsAll = generateDailyGoals(data, todayStr);
+        const dailyGoalsDone = dailyGoalsAll.filter((g) => isGoalCompletedToday(data, g.id, todayStr)).length;
+        return (
+          <Link
+            href="/growth"
+            className="flex items-center justify-between bg-card border border-card-border rounded-xl p-4 hover:border-growth/30 transition-colors"
+          >
+            <div>
+              <div className="text-sm font-medium">Daily Goals</div>
+              <div className="text-xs text-muted">
+                Essentials + suggestions tailored to you
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                dailyGoalsDone === dailyGoalsAll.length
+                  ? "bg-success/15 text-success"
+                  : "bg-growth/15 text-growth"
+              }`}>
+                {dailyGoalsDone}/{dailyGoalsAll.length}
+              </span>
+              <svg className="text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          </Link>
+        );
+      })()}
 
       {/* Journal Card */}
       {(() => {
