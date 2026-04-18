@@ -2,6 +2,7 @@
 
 import { AuthProvider } from "./AuthProvider";
 import { AuthGate } from "./AuthGate";
+import { StoreProvider } from "@/lib/store";
 
 const isSupabaseConfigured =
   typeof process !== "undefined" &&
@@ -10,13 +11,14 @@ const isSupabaseConfigured =
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   if (!isSupabaseConfigured) {
-    // No Supabase — run in local-only mode
-    return <>{children}</>;
+    return <StoreProvider>{children}</StoreProvider>;
   }
 
   return (
     <AuthProvider>
-      <AuthGate>{children}</AuthGate>
+      <AuthGate>
+        <StoreProvider>{children}</StoreProvider>
+      </AuthGate>
     </AuthProvider>
   );
 }

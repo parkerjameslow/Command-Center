@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { createContext, createElement, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { supabase } from "./supabase";
 
 // Types
@@ -379,7 +379,19 @@ async function syncToSupabase(prev: AppData, next: AppData) {
   await Promise.all(promises);
 }
 
-export function useStore() {
+// --- Shared store via React Context ---
+
+interface StoreContextValue {
+  data: AppData;
+  loaded: boolean;
+  update: (updater: (prev: AppData) => AppData) => void;
+  reload: () => Promise<void>;
+  useSupabase: boolean;
+}
+
+const StoreContext = createContext<StoreContextValue | null>(null);
+
+export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(DEFAULT_DATA);
   const [loaded, setLoaded] = useState(false);
   const useSupabase = isSupabaseConfigured();
@@ -402,9 +414,6 @@ export function useStore() {
 
   const update = useCallback(
     (updater: (prev: AppData) => AppData) => {
-      // Compute next state from the ref (most recent committed state),
-      // NOT inside setState — because React Strict Mode calls the
-      // updater function twice, which would cause double-inserts to Supabase.
       const prev = prevRef.current;
       const next = updater(prev);
       prevRef.current = next;
@@ -419,7 +428,6 @@ export function useStore() {
     [useSupabase]
   );
 
-  // Reload data from Supabase (call after navigation)
   const reload = useCallback(async () => {
     if (useSupabase) {
       const d = await loadFromSupabase();
@@ -428,7 +436,22 @@ export function useStore() {
     }
   }, [useSupabase]);
 
-  return { data, loaded, update, reload, useSupabase };
+  const value: StoreContextValue = { data, loaded, update, reload, useSupabase };
+  return createElement(StoreContext.Provider, { value }, children);
+}
+
+export function useStore(): StoreContextValue {
+  const ctx = useContext(StoreContext);
+  if (ctx) return ctx;
+  // Fallback for components rendered outside provider (e.g. SSR edge cases):
+  // return empty defaults so nothing crashes. All real usage is inside provider.
+  return {
+    data: DEFAULT_DATA,
+    loaded: false,
+    update: () => {},
+    reload: async () => {},
+    useSupabase: false,
+  };
 }
 
 // Helper: generate unique ID
