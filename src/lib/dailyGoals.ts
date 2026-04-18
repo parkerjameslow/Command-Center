@@ -131,3 +131,60 @@ export function isGoalCompletedToday(
     (j) => j.date === todayStr && j.nudgeType === "daily-goal" && j.content === goalId
   );
 }
+
+// Count of completed daily-goals on a given date (any goal id)
+export function countCompletedOn(data: AppData, dateStr: string): number {
+  const done = new Set<string>();
+  for (const j of (data.journalLogs || [])) {
+    if (j.date === dateStr && j.nudgeType === "daily-goal") {
+      done.add(j.content);
+    }
+  }
+  return done.size;
+}
+
+// Expected total of goals for a given date (we regenerate using today's data
+// as an approximation — the default 4 are always there, suggestions may vary)
+export function expectedTotalOn(data: AppData, dateStr: string): number {
+  // Use 4 defaults as baseline; add count of dynamic suggestions based on
+  // that day's context is complex, so just use the current generated total
+  // as a reasonable estimate. For historical days we'll treat 4 as min.
+  const current = generateDailyGoals(data, dateStr);
+  return Math.max(4, current.length);
+}
+
+// Get dates for the current week (Sunday..Saturday)
+export function getWeekDates(todayStr: string): string[] {
+  const today = new Date(todayStr + "T00:00:00");
+  const dayOfWeek = today.getDay(); // 0 = Sunday
+  const sunday = new Date(today);
+  sunday.setDate(today.getDate() - dayOfWeek);
+  const dates: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+// Month stats: days all-completed in the current calendar month
+export function monthStats(data: AppData, todayStr: string): { daysPerfect: number; totalDays: number; daysAttempted: number } {
+  const today = new Date(todayStr + "T00:00:00");
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const todayDay = today.getDate();
+
+  let daysPerfect = 0;
+  let daysAttempted = 0;
+  for (let d = 1; d <= Math.min(todayDay, lastDay); d++) {
+    const dateStr = new Date(year, month, d).toISOString().slice(0, 10);
+    const done = countCompletedOn(data, dateStr);
+    const total = expectedTotalOn(data, dateStr);
+    if (done > 0) daysAttempted++;
+    if (done >= total) daysPerfect++;
+  }
+
+  return { daysPerfect, totalDays: todayDay, daysAttempted };
+}

@@ -2,7 +2,7 @@
 
 import { useStore, today, getStreak, uid, type Nudge } from "@/lib/store";
 import { generateNudges } from "@/lib/nudgeEngine";
-import { generateDailyGoals, isGoalCompletedToday } from "@/lib/dailyGoals";
+import { generateDailyGoals, isGoalCompletedToday, countCompletedOn, expectedTotalOn, getWeekDates } from "@/lib/dailyGoals";
 import { NudgeCards } from "@/components/NudgeCards";
 import { NudgeAction } from "@/components/NudgeAction";
 import Link from "next/link";
@@ -751,28 +751,65 @@ export default function Dashboard() {
       {(() => {
         const dailyGoalsAll = generateDailyGoals(data, todayStr);
         const dailyGoalsDone = dailyGoalsAll.filter((g) => isGoalCompletedToday(data, g.id, todayStr)).length;
+        const weekDates = getWeekDates(todayStr);
+        const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
         return (
           <Link
             href="/everyday-events"
-            className="flex items-center justify-between bg-card border border-card-border rounded-xl p-4 hover:border-growth/30 transition-colors"
+            className="block bg-card border border-card-border rounded-xl p-4 hover:border-growth/30 transition-colors"
           >
-            <div>
-              <div className="text-sm font-medium">Everyday Events</div>
-              <div className="text-xs text-muted">
-                Essentials + suggestions tailored to you
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-sm font-medium">Everyday Events</div>
+                <div className="text-xs text-muted">
+                  Essentials + suggestions tailored to you
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                  dailyGoalsDone === dailyGoalsAll.length
+                    ? "bg-success/15 text-success"
+                    : "bg-growth/15 text-growth"
+                }`}>
+                  {dailyGoalsDone}/{dailyGoalsAll.length}
+                </span>
+                <svg className="text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                dailyGoalsDone === dailyGoalsAll.length
-                  ? "bg-success/15 text-success"
-                  : "bg-growth/15 text-growth"
-              }`}>
-                {dailyGoalsDone}/{dailyGoalsAll.length}
-              </span>
-              <svg className="text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
+            {/* Weekly progress dots */}
+            <div className="grid grid-cols-7 gap-1">
+              {weekDates.map((dateStr, i) => {
+                const done = countCompletedOn(data, dateStr);
+                const total = expectedTotalOn(data, dateStr);
+                const isToday = dateStr === todayStr;
+                const isFuture = dateStr > todayStr;
+                const isPerfect = !isFuture && done >= total && total > 0;
+                const partial = !isFuture && done > 0 && done < total;
+                return (
+                  <div key={dateStr} className="flex flex-col items-center gap-0.5">
+                    <div className="text-[9px] text-muted">{dayLabels[i]}</div>
+                    <div
+                      className={`w-5 h-5 rounded-md flex items-center justify-center ${
+                        isFuture
+                          ? "border border-dashed border-card-border opacity-40"
+                          : isPerfect
+                          ? "bg-success"
+                          : partial
+                          ? "bg-warning/40 border border-warning/50"
+                          : "bg-card-border"
+                      } ${isToday ? "ring-1 ring-accent" : ""}`}
+                    >
+                      {isPerfect && (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </Link>
         );
