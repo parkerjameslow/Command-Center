@@ -510,7 +510,7 @@ export default function Dashboard() {
       </div>
 
       {/* Daily Workflow CTAs */}
-      {!todayJournal && (
+      {!todayJournal && hour >= 6 && hour < 12 && (
         <Link
           href="/checkin"
           className="block bg-accent/10 border border-accent/20 rounded-xl p-4 text-center"
@@ -519,7 +519,7 @@ export default function Dashboard() {
           <div className="text-muted text-sm mt-1">Morning check-in</div>
         </Link>
       )}
-      {todayJournal && hour >= 13 && hour < 18 && !(data.journalLogs || []).find((j) => j.date === todayStr && j.nudgeType === "midday-checkin") && (
+      {hour >= 12 && hour < 18 && !(data.journalLogs || []).find((j) => j.date === todayStr && j.nudgeType === "midday-checkin") && (
         <Link
           href="/midday"
           className="block bg-work/10 border border-work/20 rounded-xl p-4 text-center"
@@ -528,7 +528,7 @@ export default function Dashboard() {
           <div className="text-muted text-sm mt-1">How&apos;s your day going? Pulse check and refocus.</div>
         </Link>
       )}
-      {todayJournal && !eveningJournal && hour >= 18 && (
+      {!eveningJournal && hour >= 18 && (
         <Link
           href="/reflect"
           className="block bg-personal/10 border border-personal/20 rounded-xl p-4 text-center"
