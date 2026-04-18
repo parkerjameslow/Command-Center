@@ -59,7 +59,7 @@ export function DailyGoals() {
   return (
     <section>
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Daily Goals</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Everyday Events</h2>
         <span className="px-2.5 py-1 bg-accent/10 text-accent rounded-full text-[11px] font-medium">
           {completedToday}/{goals.length}
         </span>

@@ -747,17 +747,17 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Daily Goals Card */}
+      {/* Everyday Events Card */}
       {(() => {
         const dailyGoalsAll = generateDailyGoals(data, todayStr);
         const dailyGoalsDone = dailyGoalsAll.filter((g) => isGoalCompletedToday(data, g.id, todayStr)).length;
         return (
           <Link
-            href="/growth"
+            href="/everyday-events"
             className="flex items-center justify-between bg-card border border-card-border rounded-xl p-4 hover:border-growth/30 transition-colors"
           >
             <div>
-              <div className="text-sm font-medium">Daily Goals</div>
+              <div className="text-sm font-medium">Everyday Events</div>
               <div className="text-xs text-muted">
                 Essentials + suggestions tailored to you
               </div>
