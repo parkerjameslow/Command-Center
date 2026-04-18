@@ -1,16 +1,14 @@
 "use client";
 
 import { DomainPage } from "@/components/DomainPage";
-import { useStore, uid, today, type AppData } from "@/lib/store";
+import { useStore, today, type AppData } from "@/lib/store";
 import { CompletedCard } from "@/components/CompletedCard";
-import { useMemo, useState } from "react";
+import { Top3Suggestions } from "@/components/Top3Suggestions";
+import { useMemo } from "react";
 
 export default function ChoresPage() {
-  const { data, loaded, update } = useStore();
+  const { data, loaded } = useStore();
   const todayStr = today();
-  const [addModal, setAddModal] = useState<{ title: string } | null>(null);
-  const [dueDate, setDueDate] = useState("");
-  const [dueTime, setDueTime] = useState("");
 
   const suggestedChores = useMemo(() => generateHouseChores(data, todayStr), [data, todayStr]);
 
@@ -20,48 +18,6 @@ export default function ChoresPage() {
   const completed = choreTasks.filter((t) => t.completed).length;
   const pending = choreTasks.filter((t) => !t.completed).length;
   const choreNudgesDone = data.nudges.filter((n) => (n.type === "chore" || n.type === "service") && n.completed).length;
-
-  function completeChore(title: string) {
-    update((d) => ({
-      ...d,
-      tasks: [...d.tasks, {
-        id: uid(),
-        title,
-        domain: "work" as const,
-        priority: "high" as const,
-        completed: true,
-        createdAt: new Date().toISOString(),
-      }],
-      journalLogs: [...(d.journalLogs || []), {
-        id: uid(),
-        date: todayStr,
-        category: "service" as const,
-        title: "Chore completed",
-        content: title,
-        mood: 4,
-        createdAt: new Date().toISOString(),
-      }],
-    }));
-  }
-
-  function addChoreAsTask() {
-    if (!addModal) return;
-    update((d) => ({
-      ...d,
-      tasks: [...d.tasks, {
-        id: uid(),
-        title: addModal.title,
-        domain: "work" as const,
-        priority: "medium" as const,
-        completed: false,
-        dueDate: dueDate || undefined,
-        createdAt: new Date().toISOString(),
-      }],
-    }));
-    setAddModal(null);
-    setDueDate("");
-    setDueTime("");
-  }
 
   return (
     <div>
@@ -90,87 +46,15 @@ export default function ChoresPage() {
 
       <DomainPage domain="work" title="" color="bg-work" description="" />
 
-      <div className="max-w-lg mx-auto px-4 pb-6">
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted mb-2">Today&apos;s Top 3</h2>
-          <p className="text-xs text-muted mb-3">Highest-impact house tasks based on your patterns.</p>
-          <div className="space-y-2">
-            {suggestedChores.map((chore, i) => (
-              <div key={i} className={`border rounded-xl p-4 ${chore.bg}`}>
-                <div className="text-[10px] text-muted uppercase font-semibold mb-1">{chore.category}</div>
-                <p className="text-sm font-medium mb-1">{chore.title}</p>
-                <p className="text-xs text-muted">{chore.why}</p>
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={() => completeChore(chore.title)}
-                    className="px-3 py-1.5 bg-success text-white rounded-lg text-xs font-medium"
-                  >
-                    Done
-                  </button>
-                  <button
-                    onClick={() => setAddModal({ title: chore.title })}
-                    className="px-3 py-1.5 bg-card border border-card-border rounded-lg text-xs font-medium text-muted"
-                  >
-                    Add to Tasks
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
+      <Top3Suggestions
+        title="Today's Top 3"
+        subtitle="Highest-impact house tasks. Same 3 all day — fresh 3 tomorrow."
+        suggestions={suggestedChores}
+        domain="work"
+        journalCategory="service"
+      />
 
       <CompletedCard domain="work" />
-
-      {/* Add to Tasks Modal */}
-      {addModal && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-end justify-center">
-          <div className="bg-background w-full max-w-lg rounded-t-2xl">
-            <div className="p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold">Add to Tasks</h2>
-                <button onClick={() => { setAddModal(null); setDueDate(""); setDueTime(""); }} className="text-muted hover:text-foreground p-1">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="bg-card border border-card-border rounded-xl p-3">
-                <div className="text-sm">{addModal.title}</div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Due date (optional)</label>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full bg-card border border-card-border rounded-xl px-4 py-3 text-sm outline-none focus:border-accent"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Due time (optional)</label>
-                <input
-                  type="time"
-                  value={dueTime}
-                  onChange={(e) => setDueTime(e.target.value)}
-                  className="w-full bg-card border border-card-border rounded-xl px-4 py-3 text-sm outline-none focus:border-accent"
-                />
-              </div>
-
-              <button
-                onClick={addChoreAsTask}
-                className="w-full py-3 bg-accent text-white rounded-xl text-sm font-medium"
-              >
-                Add to Chore List
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -184,10 +68,12 @@ interface HouseChore {
   bg: string;
 }
 
-export function generateHouseChores(data: AppData, todayStr: string): HouseChore[] {
+// Exported for BottomNav + dashboard; `data` intentionally unused so that
+// completing a chore (which mutates journalLogs/tasks) never regenerates
+// the Top 3 titles. Same 3 all day; new 3 tomorrow.
+export function generateHouseChores(_data: AppData, _todayStr: string): HouseChore[] {
   const chores: HouseChore[] = [];
   const dayIdx = dayOfYear();
-  const serviceEntries = (data.journalLogs || []).filter((j) => (j.category === "service" || j.nudgeType === "chore") && daysBetween(j.date, todayStr) <= 14);
 
   // Pool of strictly house/outdoor chores
   const kitchenChores = [
@@ -227,8 +113,9 @@ export function generateHouseChores(data: AppData, todayStr: string): HouseChore
     { title: "Replace any burned-out lightbulbs", why: "Walk the house. Fix every dark corner." },
   ];
 
-  // Pick one from each category based on day + history
-  const kitchenIdx = (dayIdx + serviceEntries.length) % kitchenChores.length;
+  // Pick one from each category — deterministic per day, never shifts
+  // within a day (so completing a chore doesn't replace it with a new one)
+  const kitchenIdx = dayIdx % kitchenChores.length;
   const outdoorIdx = dayIdx % outdoorChores.length;
   const generalIdx = (dayIdx + 3) % generalChores.length;
 
@@ -246,7 +133,7 @@ export function generateHouseChores(data: AppData, todayStr: string): HouseChore
   return chores;
 }
 
-function daysBetween(dateA: string, dateB: string): number {
+function _daysBetween(dateA: string, dateB: string): number {
   const a = new Date(dateA + "T00:00:00");
   const b = new Date(dateB + "T00:00:00");
   return Math.floor((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
