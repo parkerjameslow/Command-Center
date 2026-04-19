@@ -3,6 +3,7 @@
 import { useStore, today, getStreak, uid, type Nudge } from "@/lib/store";
 import { generateNudges } from "@/lib/nudgeEngine";
 import { generateDailyGoals, isGoalCompletedToday, countCompletedOn, expectedTotalOn, getWeekDates } from "@/lib/dailyGoals";
+import { selectThemeForDay, wasScriptureReadToday } from "@/lib/spiritual";
 import { NudgeCards } from "@/components/NudgeCards";
 import { NudgeAction } from "@/components/NudgeAction";
 import Link from "next/link";
@@ -23,6 +24,7 @@ export default function Dashboard() {
 
   // All hooks must be before any early return
   const nudges = useMemo(() => generateNudges(data, todayStr), [data, todayStr]);
+  const scriptureTheme = useMemo(() => selectThemeForDay(data, todayStr), [data, todayStr]);
 
   if (!loaded) {
     return <div className="flex items-center justify-center h-screen text-muted">Loading...</div>;
@@ -508,6 +510,25 @@ export default function Dashboard() {
           <div className="text-[10px] text-muted mt-0.5">Goals</div>
         </button>
       </div>
+
+      {/* Scripture of the Day — morning only, disappears after read */}
+      {hour >= 6 && !wasScriptureReadToday(data, todayStr) && (
+        <Link
+          href="/scripture"
+          className="block bg-gradient-to-br from-accent/10 to-warning/5 border border-accent/20 rounded-xl p-4"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[10px] text-muted uppercase tracking-wide font-semibold mb-1">Scripture of the Day</div>
+              <div className="text-accent font-semibold">{scriptureTheme.title}</div>
+              <div className="text-xs text-muted mt-0.5 italic">{scriptureTheme.summary}</div>
+            </div>
+            <svg className="text-accent flex-shrink-0 ml-3" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </div>
+        </Link>
+      )}
 
       {/* Daily Workflow CTAs */}
       {!todayJournal && hour >= 6 && hour < 12 && (
