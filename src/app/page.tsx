@@ -511,53 +511,71 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Scripture of the Day — morning only, disappears after read */}
-      {hour >= 6 && !wasScriptureReadToday(data, todayStr) && (
-        <Link
-          href="/scripture"
-          className="block bg-gradient-to-br from-accent/10 to-warning/5 border border-accent/20 rounded-xl p-4"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[10px] text-muted uppercase tracking-wide font-semibold mb-1">Scripture of the Day</div>
-              <div className="text-accent font-semibold">{scriptureTheme.title}</div>
-              <div className="text-xs text-muted mt-0.5 italic">{scriptureTheme.summary}</div>
-            </div>
-            <svg className="text-accent flex-shrink-0 ml-3" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </div>
-        </Link>
-      )}
+      {/* Scripture + Check-in side-by-side tiles */}
+      {(() => {
+        const showScripture = hour >= 6 && !wasScriptureReadToday(data, todayStr);
+        const showMorning = !todayJournal && hour >= 6 && hour < 12;
+        const showMidday = hour >= 12 && hour < 18 && !(data.journalLogs || []).find((j) => j.date === todayStr && j.nudgeType === "midday-checkin");
+        const showEvening = !eveningJournal && hour >= 18;
+        const showCheckin = showMorning || showMidday || showEvening;
 
-      {/* Daily Workflow CTAs */}
-      {!todayJournal && hour >= 6 && hour < 12 && (
-        <Link
-          href="/checkin"
-          className="block bg-accent/10 border border-accent/20 rounded-xl p-4 text-center"
-        >
-          <div className="text-accent font-semibold">Start your day</div>
-          <div className="text-muted text-sm mt-1">Morning check-in</div>
-        </Link>
-      )}
-      {hour >= 12 && hour < 18 && !(data.journalLogs || []).find((j) => j.date === todayStr && j.nudgeType === "midday-checkin") && (
-        <Link
-          href="/midday"
-          className="block bg-work/10 border border-work/20 rounded-xl p-4 text-center"
-        >
-          <div className="text-work font-semibold">Midday check-in</div>
-          <div className="text-muted text-sm mt-1">How&apos;s your day going? Pulse check and refocus.</div>
-        </Link>
-      )}
-      {!eveningJournal && hour >= 18 && (
-        <Link
-          href="/reflect"
-          className="block bg-personal/10 border border-personal/20 rounded-xl p-4 text-center"
-        >
-          <div className="text-personal font-semibold">End of day check-in</div>
-          <div className="text-muted text-sm mt-1">Reflect on today&apos;s nudges, wins, and what to improve</div>
-        </Link>
-      )}
+        if (!showScripture && !showCheckin) return null;
+
+        const checkinTile = showMorning ? (
+          <Link
+            href="/checkin"
+            className="flex-1 bg-accent/10 border border-accent/20 rounded-xl p-4 flex flex-col justify-between min-h-[140px]"
+          >
+            <div className="text-[10px] text-muted uppercase tracking-wide font-semibold">Morning</div>
+            <div>
+              <div className="text-accent font-semibold">Start your day</div>
+              <div className="text-muted text-xs mt-1">Morning check-in</div>
+            </div>
+          </Link>
+        ) : showMidday ? (
+          <Link
+            href="/midday"
+            className="flex-1 bg-work/10 border border-work/20 rounded-xl p-4 flex flex-col justify-between min-h-[140px]"
+          >
+            <div className="text-[10px] text-muted uppercase tracking-wide font-semibold">Midday</div>
+            <div>
+              <div className="text-work font-semibold">Midday check-in</div>
+              <div className="text-muted text-xs mt-1">Pulse check and refocus</div>
+            </div>
+          </Link>
+        ) : showEvening ? (
+          <Link
+            href="/reflect"
+            className="flex-1 bg-personal/10 border border-personal/20 rounded-xl p-4 flex flex-col justify-between min-h-[140px]"
+          >
+            <div className="text-[10px] text-muted uppercase tracking-wide font-semibold">Evening</div>
+            <div>
+              <div className="text-personal font-semibold">End of day check-in</div>
+              <div className="text-muted text-xs mt-1">Reflect on today&apos;s wins</div>
+            </div>
+          </Link>
+        ) : null;
+
+        const scriptureTile = showScripture ? (
+          <Link
+            href="/scripture"
+            className="flex-1 bg-gradient-to-br from-accent/10 to-warning/5 border border-accent/20 rounded-xl p-4 flex flex-col justify-between min-h-[140px]"
+          >
+            <div className="text-[10px] text-muted uppercase tracking-wide font-semibold">Scripture of the Day</div>
+            <div>
+              <div className="text-accent font-semibold">{scriptureTheme.title}</div>
+              <div className="text-muted text-xs mt-1 italic line-clamp-2">{scriptureTheme.summary}</div>
+            </div>
+          </Link>
+        ) : null;
+
+        return (
+          <div className="flex gap-3">
+            {scriptureTile}
+            {checkinTile}
+          </div>
+        );
+      })()}
 
       {/* People Summary Card */}
       {data.people.length > 0 && (() => {
