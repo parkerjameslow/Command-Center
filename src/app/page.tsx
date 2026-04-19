@@ -479,6 +479,34 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* My People — thin tile */}
+      {data.people.length > 0 && (() => {
+        const overdue = data.people.filter((p) => {
+          if (!p.lastContact) return true;
+          const days = Math.floor((new Date(todayStr + "T00:00:00").getTime() - new Date(p.lastContact + "T00:00:00").getTime()) / 86400000);
+          return days >= p.contactFrequency;
+        }).length;
+        const subtitle = overdue === 0
+          ? "Everyone up to date"
+          : `${overdue} ${overdue === 1 ? "person" : "people"} overdue`;
+        return (
+          <button
+            onClick={() => setView("people")}
+            className="w-full flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-2.5 hover:border-family/30 transition-colors"
+          >
+            <span className="text-sm font-medium">My People</span>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs ${overdue > 0 ? "text-danger" : "text-success"}`}>
+                {subtitle}
+              </span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          </button>
+        );
+      })()}
+
       {/* Quick Stats */}
       <div className="grid grid-cols-4 gap-2">
         <button
@@ -574,49 +602,6 @@ export default function Dashboard() {
             {scriptureTile}
             {checkinTile}
           </div>
-        );
-      })()}
-
-      {/* People Summary Card */}
-      {data.people.length > 0 && (() => {
-        const total = data.people.length;
-        const connectedToday = data.people.filter((p) => p.lastContact === todayStr).length;
-        const overdue = data.people.filter((p) => {
-          if (!p.lastContact) return true;
-          const days = Math.floor((new Date(todayStr + "T00:00:00").getTime() - new Date(p.lastContact + "T00:00:00").getTime()) / 86400000);
-          return days >= p.contactFrequency;
-        }).length;
-        return (
-          <button
-            onClick={() => setView("people")}
-            className="w-full bg-card border border-card-border rounded-xl p-4 text-left hover:border-family/30 transition-colors"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">My People</h2>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div>
-                <div className="text-xl font-bold text-foreground">{total}</div>
-                <div className="text-[10px] text-muted">Tracked</div>
-              </div>
-              <div>
-                <div className={`text-xl font-bold ${connectedToday > 0 ? "text-success" : "text-muted"}`}>{connectedToday}</div>
-                <div className="text-[10px] text-muted">Today</div>
-              </div>
-              <div>
-                <div className={`text-xl font-bold ${overdue > 0 ? "text-danger" : "text-success"}`}>{overdue}</div>
-                <div className="text-[10px] text-muted">Overdue</div>
-              </div>
-            </div>
-            {overdue > 0 && (
-              <div className="mt-3 text-xs text-danger/80 text-center">
-                {overdue} {overdue === 1 ? "person needs" : "people need"} your attention
-              </div>
-            )}
-          </button>
         );
       })()}
 
