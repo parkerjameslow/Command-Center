@@ -470,7 +470,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-lg mx-auto px-4 py-6 space-y-3">
       {/* Date */}
       <div>
         <p className="text-muted text-sm">
