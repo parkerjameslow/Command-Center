@@ -471,10 +471,9 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-      {/* Header */}
+      {/* Date */}
       <div>
-        <h1 className="text-2xl font-bold">{greeting}, Parker</h1>
-        <p className="text-muted text-sm mt-1">
+        <p className="text-muted text-sm">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
         </p>
       </div>
