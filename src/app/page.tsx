@@ -731,7 +731,8 @@ export default function Dashboard() {
             {(() => {
               const personalHabits = dailyHabits.filter((h) => h.domain === "personal");
               const personalDone = personalHabits.filter((h) => todayLogs.find((l) => l.habitId === h.id && l.completed)).length;
-              const journalCount = (data.journalLogs || []).filter((j) => daysBetween(j.date, todayStr) <= 7).length;
+              const systemMarkers = new Set(["midday-checkin", "user-settings", "scripture-daily", "daily-goal"]);
+              const journalCount = (data.journalLogs || []).filter((j) => daysBetween(j.date, todayStr) <= 7 && !systemMarkers.has(j.nudgeType || "")).length;
 
               // Broadened mood average: pull from all mood signals in last 7 days
               const allMoods: number[] = [];
@@ -868,8 +869,9 @@ export default function Dashboard() {
 
       {/* Journal Card */}
       {(() => {
+        const systemMarkers = new Set(["midday-checkin", "user-settings", "scripture-daily", "daily-goal"]);
         const todayEntries = [
-          ...(data.journalLogs || []).filter((j) => j.date === todayStr),
+          ...(data.journalLogs || []).filter((j) => j.date === todayStr && !systemMarkers.has(j.nudgeType || "")),
           ...data.journal.filter((j) => j.date === todayStr),
           ...data.connectionLogs.filter((c) => c.date === todayStr && c.note),
         ].length;

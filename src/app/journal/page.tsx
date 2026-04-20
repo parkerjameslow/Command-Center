@@ -50,7 +50,11 @@ export default function JournalPage() {
 
   // Add journal logs (exclude midday check-in entries)
   for (const log of data.journalLogs) {
+    // Skip system/metadata entries that aren't actually user journal entries
     if (log.nudgeType === "midday-checkin") continue;
+    if (log.nudgeType === "user-settings") continue;
+    if (log.nudgeType === "scripture-daily") continue;
+    if (log.nudgeType === "daily-goal") continue;
     const person = log.relatedPersonId
       ? data.people.find((p) => p.id === log.relatedPersonId)
       : null;

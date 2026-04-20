@@ -13,8 +13,9 @@ export default function PersonalPage() {
   const todayStr = today();
   const suggestions = useMemo(() => generatePersonalSuggestions(data, todayStr), [data, todayStr]);
 
+  const systemMarkers = new Set(["midday-checkin", "user-settings", "scripture-daily", "daily-goal"]);
   const todayEntries = [
-    ...(data.journalLogs || []).filter((j) => j.date === todayStr),
+    ...(data.journalLogs || []).filter((j) => j.date === todayStr && !systemMarkers.has(j.nudgeType || "")),
     ...data.journal.filter((j) => j.date === todayStr),
     ...data.connectionLogs.filter((c) => c.date === todayStr && c.note),
   ].length;
