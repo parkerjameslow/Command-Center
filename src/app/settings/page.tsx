@@ -1,8 +1,8 @@
 "use client";
 
 import { useStore, uid, today } from "@/lib/store";
-import { supabase } from "@/lib/supabase";
 import { applySettings, getSettings } from "@/lib/settings";
+import { clearPinHash, lock } from "@/lib/pin";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -10,16 +10,9 @@ export default function SettingsPage() {
   const { data, loaded, update } = useStore();
   const router = useRouter();
   const todayStr = today();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const settings = useMemo(() => getSettings(data), [data]);
   const [displayName, setDisplayName] = useState(settings.displayName || "");
-
-  // Fetch user email for display
-  useMemo(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserEmail(user?.email || null);
-    });
-  }, []);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   if (!loaded) {
     return <div className="flex items-center justify-center h-screen text-muted">Loading...</div>;
@@ -41,8 +34,13 @@ export default function SettingsPage() {
     router.push("/");
   }
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
+  function lockNow() {
+    lock();
+    window.location.href = "/";
+  }
+
+  function resetPin() {
+    clearPinHash();
     window.location.href = "/";
   }
 
@@ -60,12 +58,6 @@ export default function SettingsPage() {
       {/* Profile */}
       <section className="bg-card border border-card-border rounded-xl p-4 space-y-3">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Profile</h2>
-        {userEmail && (
-          <div>
-            <div className="text-[11px] text-muted">Signed in as</div>
-            <div className="text-sm">{userEmail}</div>
-          </div>
-        )}
         <div>
           <label className="text-xs text-muted mb-1 block">Display name</label>
           <div className="flex gap-2">
@@ -122,14 +114,43 @@ export default function SettingsPage() {
         </button>
       </section>
 
-      {/* Account */}
-      <section className="bg-card border border-card-border rounded-xl p-4">
+      {/* Lock / Reset PIN */}
+      <section className="bg-card border border-card-border rounded-xl p-4 space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Security</h2>
         <button
-          onClick={handleSignOut}
-          className="w-full text-left text-sm text-danger hover:underline"
+          onClick={lockNow}
+          className="w-full text-left text-sm hover:text-accent"
         >
-          Sign out
+          Lock now
         </button>
+        {!confirmReset ? (
+          <button
+            onClick={() => setConfirmReset(true)}
+            className="w-full text-left text-sm text-danger hover:underline"
+          >
+            Reset PIN
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <div className="text-xs text-muted">
+              This will clear your PIN on this device. You&apos;ll set a new one next time you open the app.
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={resetPin}
+                className="px-3 py-2 bg-danger text-white rounded-lg text-xs font-medium"
+              >
+                Yes, reset it
+              </button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="px-3 py-2 text-muted text-xs"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

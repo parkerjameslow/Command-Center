@@ -1,7 +1,7 @@
 "use client";
 
 import { AuthProvider } from "./AuthProvider";
-import { AuthGate } from "./AuthGate";
+import { PinGate } from "./PinGate";
 import { StoreProvider } from "@/lib/store";
 
 const isSupabaseConfigured =
@@ -14,11 +14,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <StoreProvider>{children}</StoreProvider>;
   }
 
+  // AuthProvider manages the underlying Supabase session (anonymous or
+  // legacy email). PinGate is the user-facing lock screen.
   return (
     <AuthProvider>
-      <AuthGate>
+      <PinGate>
         <StoreProvider>{children}</StoreProvider>
-      </AuthGate>
+      </PinGate>
     </AuthProvider>
   );
 }
