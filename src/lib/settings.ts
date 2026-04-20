@@ -3,12 +3,14 @@ import type { AppData } from "./store";
 export interface UserSettings {
   scriptureEnabled: boolean;
   onboardingCompleted: boolean;
+  welcomeSeen: boolean;
   displayName?: string;
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
   scriptureEnabled: true,
   onboardingCompleted: false,
+  welcomeSeen: false,
 };
 
 const SETTINGS_MARKER = "user-settings";

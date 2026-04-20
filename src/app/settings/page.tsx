@@ -13,6 +13,44 @@ export default function SettingsPage() {
   const settings = useMemo(() => getSettings(data), [data]);
   const [displayName, setDisplayName] = useState(settings.displayName || "");
   const [confirmReset, setConfirmReset] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "";
+
+  async function copyInviteLink() {
+    try {
+      await navigator.clipboard.writeText(appUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for browsers without clipboard API
+      const input = document.createElement("input");
+      input.value = appUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  async function shareInvite() {
+    const shareText = "Check out Command Center — a personal OS for becoming a better husband, father, friend, and human. One intentional day at a time.";
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Command Center",
+          text: shareText,
+          url: appUrl,
+        });
+      } catch {
+        // User cancelled
+      }
+    } else {
+      copyInviteLink();
+    }
+  }
 
   if (!loaded) {
     return <div className="flex items-center justify-center h-screen text-muted">Loading...</div>;
@@ -99,6 +137,35 @@ export default function SettingsPage() {
                 settings.scriptureEnabled ? "translate-x-5" : "translate-x-0.5"
               }`}
             />
+          </button>
+        </div>
+      </section>
+
+      {/* Invite */}
+      <section className="bg-card border border-card-border rounded-xl p-4 space-y-3">
+        <div>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Share Command Center</h2>
+          <p className="text-xs text-muted mt-1">
+            Send the link to anyone. They&apos;ll set their own PIN and get their own private Command Center.
+          </p>
+        </div>
+
+        <div className="bg-card-border/40 border border-card-border rounded-lg px-3 py-2 text-xs text-muted break-all font-mono">
+          {appUrl}
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={shareInvite}
+            className="flex-1 py-2.5 bg-accent text-white rounded-lg text-xs font-medium"
+          >
+            Share invite
+          </button>
+          <button
+            onClick={copyInviteLink}
+            className="flex-1 py-2.5 bg-card border border-card-border rounded-lg text-xs font-medium text-muted"
+          >
+            {copied ? "✓ Copied" : "Copy link"}
           </button>
         </div>
       </section>

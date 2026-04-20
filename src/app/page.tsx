@@ -9,7 +9,8 @@ import { NudgeCards } from "@/components/NudgeCards";
 import { NudgeAction } from "@/components/NudgeAction";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import Link from "next/link";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const DOMAINS = [
   { key: "personal", label: "Personal", color: "bg-personal", href: "/personal" },
@@ -21,12 +22,24 @@ const DOMAINS = [
 export default function Dashboard() {
   const { data, loaded, update } = useStore();
   const todayStr = today();
+  const router = useRouter();
   const [view, setView] = useState<"dashboard" | "high" | "all" | "people" | "goals" | "habits" | "nudges">("dashboard");
   const [activeNudge, setActiveNudge] = useState<Nudge | null>(null);
 
   // All hooks must be before any early return
   const nudges = useMemo(() => generateNudges(data, todayStr), [data, todayStr]);
   const scriptureTheme = useMemo(() => selectThemeForDay(data, todayStr), [data, todayStr]);
+
+  // One-time redirect to welcome page for new users
+  useEffect(() => {
+    if (!loaded) return;
+    const settings = getSettings(data);
+    const pending = typeof window !== "undefined" && sessionStorage.getItem("cc-welcome-pending") === "1";
+    if (!settings.welcomeSeen && (pending || data.habits.length + data.tasks.length + data.people.length === 0)) {
+      sessionStorage.removeItem("cc-welcome-pending");
+      router.push("/welcome");
+    }
+  }, [loaded, data, router]);
 
   if (!loaded) {
     return <div className="flex items-center justify-center h-screen text-muted">Loading...</div>;

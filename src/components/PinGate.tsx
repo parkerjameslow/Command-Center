@@ -11,6 +11,9 @@ import {
   isUnlockedThisSession,
 } from "@/lib/pin";
 
+// Flag used by the first-time welcome redirect
+const WELCOME_PENDING_KEY = "cc-welcome-pending";
+
 const PIN_LENGTH = 4;
 
 type Phase = "loading" | "setup" | "confirm" | "unlock" | "unlocked";
@@ -83,6 +86,10 @@ export function PinGate({ children }: { children: React.ReactNode }) {
         setPin("");
         setFirstPin("");
         setError("");
+        // Mark that we should show the welcome page on next navigation
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem(WELCOME_PENDING_KEY, "1");
+        }
         setPhase("unlocked");
       });
       return;
