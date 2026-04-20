@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthProvider } from "./AuthProvider";
+import { AuthGate } from "./AuthGate";
 import { StoreProvider } from "@/lib/store";
 
 const isSupabaseConfigured =
@@ -13,11 +14,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <StoreProvider>{children}</StoreProvider>;
   }
 
-  // AuthProvider keeps the Supabase session alive and auto-refreshes tokens.
-  // No AuthGate — the app is accessible without a login screen.
   return (
     <AuthProvider>
-      <StoreProvider>{children}</StoreProvider>
+      <AuthGate>
+        <StoreProvider>{children}</StoreProvider>
+      </AuthGate>
     </AuthProvider>
   );
 }

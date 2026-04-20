@@ -7,15 +7,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading, signIn, signUp } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState("");
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
-        <div className="text-muted">Loading...</div>
+        <div className="text-muted text-sm">Loading...</div>
       </div>
     );
   }
@@ -26,9 +25,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (submitting) return; // prevent double-tap
+    if (submitting) return;
     setError("");
-    setSuccess("");
     setSubmitting(true);
 
     const { error } = isSignUp
@@ -39,13 +37,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       setError(error);
       setSubmitting(false);
     } else if (isSignUp) {
-      setSuccess("Account created! Signing you in...");
       // Auto sign-in after sign-up
       const signInResult = await signIn(email, password);
-      if (signInResult.error) {
-        setError(signInResult.error);
-        setSuccess("");
-      }
+      if (signInResult.error) setError(signInResult.error);
       setSubmitting(false);
     } else {
       setSubmitting(false);
@@ -55,15 +49,19 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
       <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Command Center</h1>
-          <p className="text-muted text-sm mt-1">Your personal life operating system</p>
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold">Command Center</h1>
+          <p className="text-muted text-sm leading-relaxed">
+            Become a better husband, father, friend, and human —
+            one intentional day at a time.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <input
             type="email"
             placeholder="Email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -71,7 +69,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           />
           <input
             type="password"
-            placeholder="Password (6+ characters)"
+            placeholder={isSignUp ? "Create a password (6+ characters)" : "Password"}
+            autoComplete={isSignUp ? "new-password" : "current-password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -80,10 +79,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           />
 
           {error && (
-            <div className="text-danger text-sm text-center">{error}</div>
-          )}
-          {success && (
-            <div className="text-success text-sm text-center">{success}</div>
+            <div className="text-danger text-xs text-center py-1">{error}</div>
           )}
 
           <button
@@ -91,16 +87,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             disabled={submitting}
             className="w-full py-3 bg-accent text-white rounded-xl text-sm font-medium disabled:opacity-50"
           >
-            {submitting ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
+            {submitting ? "Please wait..." : isSignUp ? "Get Started" : "Sign In"}
           </button>
         </form>
 
         <button
-          onClick={() => { setIsSignUp(!isSignUp); setError(""); setSuccess(""); }}
-          className="w-full text-center text-sm text-muted"
+          onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
+          className="w-full text-center text-xs text-muted hover:text-foreground"
         >
-          {isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up"}
+          {isSignUp ? "Already have an account? Sign in" : "New here? Create an account"}
         </button>
+
+        <p className="text-[11px] text-muted text-center leading-relaxed">
+          Your data is private and yours alone. You&apos;ll only need to sign in once per device —
+          your phone&apos;s lock screen keeps it safe.
+        </p>
       </div>
     </div>
   );

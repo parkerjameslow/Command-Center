@@ -4,8 +4,10 @@ import { useStore, today, getStreak, uid, type Nudge } from "@/lib/store";
 import { generateNudges } from "@/lib/nudgeEngine";
 import { generateDailyGoals, isGoalCompletedToday, countCompletedOn, expectedTotalOn, getWeekDates } from "@/lib/dailyGoals";
 import { selectThemeForDay, wasScriptureReadToday } from "@/lib/spiritual";
+import { getSettings } from "@/lib/settings";
 import { NudgeCards } from "@/components/NudgeCards";
 import { NudgeAction } from "@/components/NudgeAction";
+import { OnboardingTour } from "@/components/OnboardingTour";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 
@@ -471,11 +473,23 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-3">
-      {/* Date */}
-      <div>
+      <OnboardingTour />
+
+      {/* Date + Settings */}
+      <div className="flex items-center justify-between">
         <p className="text-muted text-sm">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
         </p>
+        <Link
+          href="/settings"
+          className="text-muted hover:text-foreground p-1 -mr-1"
+          aria-label="Settings"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </Link>
       </div>
 
       {/* My People — thin tile */}
@@ -608,7 +622,8 @@ export default function Dashboard() {
 
       {/* Scripture + Check-in side-by-side tiles */}
       {(() => {
-        const showScripture = hour >= 6 && !wasScriptureReadToday(data, todayStr);
+        const settings = getSettings(data);
+        const showScripture = settings.scriptureEnabled && hour >= 6 && !wasScriptureReadToday(data, todayStr);
         const showMorning = !todayJournal && hour >= 6 && hour < 12;
         const showMidday = hour >= 12 && hour < 18 && !(data.journalLogs || []).find((j) => j.date === todayStr && j.nudgeType === "midday-checkin");
         const showEvening = !eveningJournal && hour >= 18;
