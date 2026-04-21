@@ -25,6 +25,7 @@ export default function JournalPage() {
   const { data, loaded, update } = useStore();
   const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   const [addCategory, setAddCategory] = useState("gratitude");
   const [addContent, setAddContent] = useState("");
   const [addMood, setAddMood] = useState(4);
@@ -35,17 +36,6 @@ export default function JournalPage() {
   }
 
   // Combine journal logs + morning/evening check-ins into unified timeline
-  type TimelineEntry = {
-    id: string;
-    date: string;
-    category: string;
-    title: string;
-    content: string;
-    mood?: number;
-    personName?: string;
-    time: string;
-  };
-
   const timeline: TimelineEntry[] = [];
 
   // Add journal logs (exclude midday check-in entries)
@@ -102,11 +92,14 @@ export default function JournalPage() {
     grouped[entry.date].push(entry);
   }
 
-  const dates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  const allDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  const recentDates = allDates.filter((d) => daysBetween(d, todayStr) <= 7);
+  const archiveDates = allDates.filter((d) => daysBetween(d, todayStr) > 7);
+  const archivedCount = archiveDates.reduce((sum, d) => sum + grouped[d].length, 0);
 
   // Stats
   const thisWeek = timeline.filter((e) => daysBetween(e.date, todayStr) <= 7).length;
-  const streak = getJournalStreak(dates, todayStr);
+  const streak = getJournalStreak(allDates, todayStr);
 
   function addEntry() {
     if (!addContent.trim()) return;
@@ -222,38 +215,98 @@ export default function JournalPage() {
         </div>
       )}
 
-      {/* Timeline */}
-      {dates.length === 0 && !showAdd && (
+      {/* Timeline — last 7 days */}
+      {allDates.length === 0 && !showAdd && (
         <div className="text-center py-8 text-muted text-sm">
           Your journal is empty. Complete a nudge, do a check-in, or add an entry to start building your story.
         </div>
       )}
 
-      {dates.map((date) => (
+      {recentDates.map((date) => (
         <div key={date}>
           <div className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
             {formatDateHeader(date, todayStr)}
           </div>
           <div className="space-y-2">
-            {grouped[date].map((entry) => {
-              const info = CATEGORY_INFO[entry.category] || CATEGORY_INFO.reflection;
-              const timestamp = formatTime(entry.time);
-              return (
-                <div key={entry.id} className={`border rounded-xl p-3 ${info.color}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium capitalize">{entry.title}</span>
-                    <span className="text-[10px] text-muted">{timestamp}</span>
-                  </div>
-                  <p className="text-sm text-muted whitespace-pre-wrap">{entry.content}</p>
-                  {entry.personName && (
-                    <div className="text-[10px] text-muted mt-1">About: {entry.personName}</div>
-                  )}
-                </div>
-              );
-            })}
+            {grouped[date].map((entry) => (
+              <JournalCard key={entry.id} entry={entry} />
+            ))}
           </div>
         </div>
       ))}
+
+      {/* Archive — older than 7 days */}
+      {archiveDates.length > 0 && (
+        <div className="pt-2">
+          <button
+            onClick={() => setShowArchive(!showArchive)}
+            className="w-full flex items-center justify-between bg-card border border-card-border rounded-xl px-4 py-3 hover:border-accent/30 transition-colors"
+          >
+            <div className="text-left">
+              <div className="text-sm font-medium">Archive</div>
+              <div className="text-xs text-muted">
+                {archivedCount} {archivedCount === 1 ? "entry" : "entries"} older than 7 days
+              </div>
+            </div>
+            <svg
+              className={`text-muted transition-transform ${showArchive ? "rotate-90" : ""}`}
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+
+          {showArchive && (
+            <div className="mt-3 space-y-5">
+              {archiveDates.map((date) => (
+                <div key={date}>
+                  <div className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+                    {formatDateHeader(date, todayStr)}
+                  </div>
+                  <div className="space-y-2">
+                    {grouped[date].map((entry) => (
+                      <JournalCard key={entry.id} entry={entry} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface TimelineEntry {
+  id: string;
+  date: string;
+  category: string;
+  title: string;
+  content: string;
+  mood?: number;
+  personName?: string;
+  time: string;
+}
+
+function JournalCard({ entry }: { entry: TimelineEntry }) {
+  const info = CATEGORY_INFO[entry.category] || CATEGORY_INFO.reflection;
+  const timestamp = formatTime(entry.time);
+  return (
+    <div className={`border rounded-xl p-3 ${info.color}`}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-medium capitalize">{entry.title}</span>
+        <span className="text-[10px] text-muted">{timestamp}</span>
+      </div>
+      <p className="text-sm text-muted whitespace-pre-wrap">{entry.content}</p>
+      {entry.personName && (
+        <div className="text-[10px] text-muted mt-1">About: {entry.personName}</div>
+      )}
     </div>
   );
 }
